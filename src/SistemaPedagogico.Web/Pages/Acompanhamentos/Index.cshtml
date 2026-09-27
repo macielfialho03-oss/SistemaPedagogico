@@ -1,0 +1,100 @@
+@page
+@model SistemaPedagogico.Web.Pages.Acompanhamentos.IndexModel
+
+@{
+    ViewData["Title"] = "Acompanhamentos";
+}
+
+<div class="page-heading">
+    <div>
+        <span class="eyebrow">ACOMPANHAMENTO ESCOLAR</span>
+        <h1>Acompanhamentos</h1>
+        <p>Registre como foi o período e deixe o próximo passo bem definido.</p>
+    </div>
+</div>
+
+<div class="context-tip mb-4">
+    <span class="context-tip-icon">✓</span>
+    <span><strong>Como usar:</strong> escolha o aluno, descreva o que observou e registre o que deverá ser feito depois.</span>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <form method="post" class="form-card">
+            <h2 class="h5 mb-1">Novo acompanhamento</h2>
+            <p class="form-intro">Os campos “desempenho” e “próximos passos” podem ser preenchidos com frases curtas.</p>
+            <div asp-validation-summary="ModelOnly"></div>
+
+            <div class="mb-3">
+                <label class="form-label" asp-for="Item.AlunoId">Aluno</label>
+                <select asp-for="Item.AlunoId" asp-items="Model.Alunos" class="form-select">
+                    <option value="">Selecione o aluno</option>
+                </select>
+                <span asp-validation-for="Item.AlunoId"></span>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-sm-5">
+                    <label class="form-label" asp-for="Item.Data">Data</label>
+                    <input asp-for="Item.Data" class="form-control" />
+                </div>
+                <div class="col-sm-7">
+                    <label class="form-label" asp-for="Item.Tipo">Tipo de acompanhamento</label>
+                    <input asp-for="Item.Tipo" class="form-control" placeholder="Ex.: rotina escolar" />
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <label class="form-label" asp-for="Item.Resumo">O que foi observado?</label>
+                <textarea asp-for="Item.Resumo" class="form-control" rows="4" placeholder="Ex.: apresentou dificuldade para concluir a tarefa de matemática."></textarea>
+                <span asp-validation-for="Item.Resumo"></span>
+            </div>
+
+            <div class="mt-3">
+                <label class="form-label" asp-for="Item.Desempenho">Como foi o desempenho?</label>
+                <textarea asp-for="Item.Desempenho" class="form-control" rows="2" placeholder="Ex.: precisou de ajuda, mas compreendeu ao final."></textarea>
+            </div>
+
+            <div class="mt-3">
+                <label class="form-label" asp-for="Item.ProximosPassos">Qual é o próximo passo?</label>
+                <textarea asp-for="Item.ProximosPassos" class="form-control" rows="2" placeholder="Ex.: revisar o conteúdo e aplicar novos exercícios."></textarea>
+            </div>
+
+            <button class="btn btn-primary w-100 mt-3">Salvar acompanhamento</button>
+        </form>
+    </div>
+
+    <div class="col-lg-7">
+        <section class="panel">
+            <div class="panel-title">
+                <div>
+                    <span class="eyebrow">REGISTROS</span>
+                    <h2>Histórico</h2>
+                </div>
+            </div>
+
+            @foreach (var x in Model.Itens)
+            {
+                <div class="list-row history-row">
+                    <span class="date-chip">
+                        <b>@x.Data.Day</b>
+                        <small>@x.Data.ToString("MMM")</small>
+                    </span>
+                    <span class="grow">
+                        <strong>@x.Aluno.Nome · @x.Tipo</strong>
+                        <small>@x.Resumo</small>
+                    </span>
+                    <a class="btn btn-sm btn-outline-primary" asp-page="/Dificuldades/Index" asp-route-alunoId="@x.AlunoId" asp-route-acompanhamentoId="@x.Id">Registrar dificuldade</a>
+                </div>
+            }
+
+            @if (Model.Itens.Count == 0)
+            {
+                <div class="empty-state compact-empty">
+                    <strong>Nenhum acompanhamento registrado.</strong>
+                    <span>Use o formulário ao lado para criar o primeiro.</span>
+                </div>
+            }
+        </section>
+    </div>
+</div>

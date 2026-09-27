@@ -1,0 +1,139 @@
+@page
+@model IndexModel
+
+@{
+    ViewData["Title"] = "Início";
+}
+
+<div class="page-heading">
+    <div>
+        <span class="eyebrow">VISÃO GERAL</span>
+        <h1>Olá! O que vamos acompanhar hoje?</h1>
+        <p>Escolha uma ação rápida ou veja o que precisa de atenção.</p>
+    </div>
+    <a class="btn btn-primary" asp-page="/Acompanhamentos/Index">+ Registrar acompanhamento</a>
+</div>
+
+<section class="start-panel mb-4" aria-labelledby="rotina-titulo">
+    <div class="start-panel-heading">
+        <div>
+            <span class="eyebrow">COMECE POR AQUI</span>
+            <h2 id="rotina-titulo">Rotina da pedagoga</h2>
+        </div>
+        <span class="start-hint">Siga esta ordem quando houver uma nova dificuldade</span>
+    </div>
+
+    <div class="workflow-grid">
+        <a class="workflow-step" asp-page="/Alunos/Index">
+            <span class="step-number">1</span>
+            <span><strong>Escolher o aluno</strong><small>Abra ou cadastre o perfil</small></span>
+        </a>
+        <a class="workflow-step" asp-page="/Acompanhamentos/Index">
+            <span class="step-number">2</span>
+            <span><strong>Registrar acompanhamento</strong><small>Anote a rotina e o desempenho</small></span>
+        </a>
+        <a class="workflow-step" asp-page="/Dificuldades/Index">
+            <span class="step-number">3</span>
+            <span><strong>Identificar dificuldade</strong><small>Informe disciplina e conteúdo</small></span>
+        </a>
+        <a class="workflow-step" asp-page="/Reforcos/Index">
+            <span class="step-number">4</span>
+            <span><strong>Criar reforço</strong><small>Planeje sessões e exercícios</small></span>
+        </a>
+    </div>
+</section>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-xl-3">
+        <a class="metric-card metric-link" asp-page="/Alunos/Index">
+            <span class="metric-icon purple">♙</span>
+            <span><strong>@Model.AlunosAtivos</strong><small>Alunos ativos</small></span>
+        </a>
+    </div>
+    <div class="col-6 col-xl-3">
+        <a class="metric-card metric-link" asp-page="/Dificuldades/Index">
+            <span class="metric-icon amber">△</span>
+            <span><strong>@Model.DificuldadesAbertas</strong><small>Dificuldades abertas</small></span>
+        </a>
+    </div>
+    <div class="col-6 col-xl-3">
+        <a class="metric-card metric-link" asp-page="/Reforcos/Index">
+            <span class="metric-icon green">↗</span>
+            <span><strong>@Model.ReforcosAtivos</strong><small>Reforços em andamento</small></span>
+        </a>
+    </div>
+    <div class="col-6 col-xl-3">
+        <a class="metric-card metric-link" asp-page="/Tarefas/Index">
+            <span class="metric-icon blue">□</span>
+            <span><strong>@Model.TarefasPendentes</strong><small>Tarefas pendentes</small></span>
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-7">
+        <section class="panel">
+            <div class="panel-title">
+                <div>
+                    <span class="eyebrow">ATENÇÃO</span>
+                    <h2>Dificuldades recentes</h2>
+                </div>
+                <a asp-page="/Dificuldades/Index">Ver todas →</a>
+            </div>
+
+            @if (Model.DificuldadesRecentes.Count == 0)
+            {
+                <div class="empty-state compact-empty">
+                    <strong>Tudo certo por aqui.</strong>
+                    <span>Nenhuma dificuldade está aberta no momento.</span>
+                </div>
+            }
+
+            @foreach (var item in Model.DificuldadesRecentes)
+            {
+                <a class="list-row" asp-page="/Alunos/Details" asp-route-id="@item.AlunoId">
+                    <span class="avatar">@item.Aluno.Nome[..1]</span>
+                    <span class="grow">
+                        <strong>@item.Aluno.Nome</strong>
+                        <small>@item.Disciplina.Nome · @item.Conteudo</small>
+                    </span>
+                    <span class="status warning">@item.Status</span>
+                </a>
+            }
+        </section>
+    </div>
+
+    <div class="col-xl-5">
+        <section class="panel">
+            <div class="panel-title">
+                <div>
+                    <span class="eyebrow">AGENDA</span>
+                    <h2>Próximos compromissos</h2>
+                </div>
+                <a asp-page="/Agenda/Index">Abrir agenda →</a>
+            </div>
+
+            @if (Model.ProximosEventos.Count == 0)
+            {
+                <div class="empty-state compact-empty">
+                    <strong>Agenda livre.</strong>
+                    <span>Nenhum compromisso próximo.</span>
+                </div>
+            }
+
+            @foreach (var item in Model.ProximosEventos)
+            {
+                <div class="list-row">
+                    <span class="date-chip">
+                        <b>@item.Inicio.Day</b>
+                        <small>@item.Inicio.ToString("MMM")</small>
+                    </span>
+                    <span class="grow">
+                        <strong>@item.Titulo</strong>
+                        <small>@item.Inicio.ToString("HH:mm") · @(item.Aluno?.Nome ?? "Geral")</small>
+                    </span>
+                </div>
+            }
+        </section>
+    </div>
+</div>

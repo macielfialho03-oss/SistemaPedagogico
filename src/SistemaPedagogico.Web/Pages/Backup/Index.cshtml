@@ -1,0 +1,16 @@
+@page
+@model SistemaPedagogico.Web.Pages.Backup.IndexModel
+@{
+    ViewData["Title"] = "Backup";
+}
+<div class="page-heading"><div><span class="eyebrow">SEGURANÇA DOS DADOS</span><h1>Backup e restauração</h1><p>Os dados ficam separados do programa e não são substituídos em atualizações.</p></div><form method="post" asp-page-handler="Criar"><button class="btn btn-primary">Criar backup agora</button></form></div>
+<div class="row g-4 mb-4"><div class="col-md-5"><div class="metric-card"><span class="metric-icon @(Model.Integro ? "green" : "amber")">@(Model.Integro ? "✓" : "!")</span><div><strong>@(Model.Integro ? "Banco íntegro" : "Verificar banco")</strong><span>Resultado da verificação SQLite</span></div></div></div><div class="col-md-7"><div class="form-card py-3"><small class="text-muted">Pasta dos backups</small><div class="text-break fw-semibold">@Model.Pasta</div></div></div></div>
+<div class="alert alert-warning"><b>Atenção:</b> restaurar troca os dados atuais pelos dados do backup escolhido. O sistema cria automaticamente uma cópia do banco atual antes da restauração.</div>
+<div class="table-card table-responsive"><table class="table"><thead><tr><th>Arquivo</th><th>Data</th><th>Tamanho</th><th></th></tr></thead><tbody>@foreach(var x in Model.Itens){
+    <tr><td class="fw-semibold">@x.Name</td><td>@x.CreationTime.ToString("dd/MM/yyyy HH:mm")</td><td>@((x.Length / 1024d).ToString("0.0")) KB</td><td class="text-end"><form method="post" asp-page-handler="Restaurar" onsubmit="return confirm('Restaurar este backup? Os dados atuais serão preservados em uma cópia automática.');"><input type="hidden" name="arquivo" value="@x.Name" /><button class="btn btn-sm btn-outline-danger">Restaurar</button></form></td></tr>
+}
+@if (Model.Itens.Count == 0)
+{
+    <tr><td colspan="4" class="empty-state">Ainda não há backups. Crie o primeiro agora.</td></tr>
+}
+</tbody></table></div>

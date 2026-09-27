@@ -1,0 +1,11 @@
+CADERNO PEDAGOGICO
+
+1. Dê dois cliques em "Iniciar Caderno Pedagogico.cmd".
+2. O sistema abrirá no navegador padrão.
+3. Não exclua nem substitua a pasta Dados.
+
+Estrutura:
+- App: arquivos do programa, que podem ser atualizados.
+- Dados: banco SQLite e backups, que devem ser preservados.
+
+Para encerrar, feche a janela "Caderno Pedagogico" aberta junto com o sistema.

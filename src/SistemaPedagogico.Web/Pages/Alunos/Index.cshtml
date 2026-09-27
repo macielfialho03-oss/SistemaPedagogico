@@ -1,0 +1,75 @@
+@page
+@model SistemaPedagogico.Web.Pages.Alunos.IndexModel
+
+@{
+    ViewData["Title"] = "Alunos";
+}
+
+<div class="page-heading">
+    <div>
+        <span class="eyebrow">CADASTROS</span>
+        <h1>Alunos</h1>
+        <p>Abra um perfil para consultar todo o histórico do aluno.</p>
+    </div>
+    <a class="btn btn-primary" asp-page="Edit">+ Cadastrar aluno</a>
+</div>
+
+<form class="action-bar student-search" method="get" role="search">
+    <label class="visually-hidden" for="busca-aluno">Buscar aluno</label>
+    <input
+        id="busca-aluno"
+        class="form-control filter-select"
+        name="busca"
+        value="@Request.Query["busca"]"
+        placeholder="Digite o nome do aluno ou da escola" />
+    <button class="btn btn-outline-secondary">Buscar</button>
+    @if (!string.IsNullOrWhiteSpace(Request.Query["busca"]))
+    {
+        <a class="btn btn-link" asp-page="Index">Limpar busca</a>
+    }
+</form>
+
+<div class="table-card table-responsive student-table">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Aluno</th>
+                <th>Escola</th>
+                <th>Ano/Série</th>
+                <th>Turno</th>
+                <th>Situação</th>
+                <th><span class="visually-hidden">Ações</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.Itens)
+            {
+                <tr>
+                    <td data-label="Aluno">
+                        <a asp-page="Details" asp-route-id="@item.Id" class="student-name">@item.Nome</a>
+                    </td>
+                    <td data-label="Escola">@(item.Escola ?? "—")</td>
+                    <td data-label="Ano/Série">@(item.SerieAno ?? "—")</td>
+                    <td data-label="Turno">@(item.Turno ?? "—")</td>
+                    <td data-label="Situação">
+                        <span class="status @(item.Ativo ? "success" : "warning")">@(item.Ativo ? "Ativo" : "Inativo")</span>
+                    </td>
+                    <td class="student-actions">
+                        <a class="btn btn-sm btn-outline-primary" asp-page="Details" asp-route-id="@item.Id">Abrir perfil</a>
+                        <a class="btn btn-sm btn-link" asp-page="Edit" asp-route-id="@item.Id">Editar</a>
+                    </td>
+                </tr>
+            }
+
+            @if (Model.Itens.Count == 0)
+            {
+                <tr class="empty-row">
+                    <td colspan="6" class="empty-state">
+                        <strong>Nenhum aluno encontrado.</strong>
+                        <span>Confira a busca ou cadastre um novo aluno.</span>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

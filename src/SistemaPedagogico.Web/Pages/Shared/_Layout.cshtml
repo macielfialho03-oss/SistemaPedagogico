@@ -1,0 +1,62 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Caderno Pedagógico</title>
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/SistemaPedagogico.Web.styles.css" asp-append-version="true" />
+</head>
+<body class="app-body">
+    <nav class="navbar navbar-dark d-lg-none app-mobile-nav">
+        <div class="container-fluid">
+            <a class="navbar-brand" asp-page="/Index">Caderno Pedagógico</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral"><span class="navbar-toggler-icon"></span></button>
+        </div>
+    </nav>
+    <div class="app-shell">
+        <aside class="offcanvas-lg offcanvas-start app-sidebar" tabindex="-1" id="menuLateral">
+            <div class="offcanvas-header d-lg-none"><h5>Menu</h5><button class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#menuLateral"></button></div>
+            <div class="offcanvas-body d-flex flex-column p-0">
+                <a class="app-brand" asp-page="/Index"><span class="brand-mark">CP</span><span>Caderno<br /><small>Pedagógico</small></span></a>
+                <div class="nav-section">VISÃO GERAL</div>
+                <a class="side-link" asp-page="/Index">▦ <span>Dashboard</span></a>
+                <a class="side-link" asp-page="/Alunos/Index">♙ <span>Alunos</span></a>
+                <a class="side-link" asp-page="/Responsaveis/Index">♧ <span>Responsáveis</span></a>
+                <a class="side-link" asp-page="/Disciplinas/Index">◇ <span>Disciplinas</span></a>
+                <div class="nav-section">ACOMPANHAMENTO</div>
+                <a class="side-link" asp-page="/Acompanhamentos/Index">☑ <span>Acompanhamentos</span></a>
+                <a class="side-link" asp-page="/Tarefas/Index">□ <span>Tarefas</span></a>
+                <a class="side-link" asp-page="/Notas/Index">★ <span>Notas</span></a>
+                <a class="side-link" asp-page="/Dificuldades/Index">△ <span>Dificuldades</span></a>
+                <div class="nav-section">REFORÇO ESCOLAR</div>
+                <a class="side-link" asp-page="/Reforcos/Index">↗ <span>Planos de reforço</span></a>
+                <a class="side-link" asp-page="/Sessoes/Index">◷ <span>Sessões</span></a>
+                <a class="side-link" asp-page="/Exercicios/Index">✎ <span>Exercícios</span></a>
+                <div class="nav-section">ORGANIZAÇÃO</div>
+                <a class="side-link" asp-page="/Agenda/Index">▣ <span>Agenda</span></a>
+                <a class="side-link" asp-page="/Evolucao/Index">⌁ <span>Evolução</span></a>
+                <a class="side-link" asp-page="/Observacoes/Index">≡ <span>Observações</span></a>
+                <a class="side-link" asp-page="/Relatorios/Index">▤ <span>Relatórios</span></a>
+                <a class="side-link mt-auto" asp-page="/Backup/Index">↻ <span>Backup</span></a>
+            </div>
+        </aside>
+        <main class="app-main">
+            @if (TempData["Mensagem"] is string mensagem)
+            {
+                <div class="alert alert-success alert-dismissible fade show"><span>@mensagem</span><button class="btn-close" data-bs-dismiss="alert"></button></div>
+            }
+            @RenderBody()
+            <footer class="app-footer">Caderno Pedagógico · funciona localmente e sem internet</footer>
+        </main>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

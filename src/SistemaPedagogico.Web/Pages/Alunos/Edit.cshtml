@@ -1,0 +1,10 @@
+@page "{id:int?}"
+@model SistemaPedagogico.Web.Pages.Alunos.EditModel
+@{ ViewData["Title"] = Model.Edicao ? "Editar aluno" : "Novo aluno"; }
+<div class="page-heading"><div><span class="eyebrow">ALUNOS</span><h1>@ViewData["Title"]</h1><p>Preencha apenas os dados disponíveis.</p></div></div>
+<form method="post" class="form-card"><input asp-for="Item.Id" type="hidden"/><input asp-for="Item.CriadoEm" type="hidden"/><div asp-validation-summary="ModelOnly"></div>
+<div class="row g-3"><div class="col-md-8"><label asp-for="Item.Nome" class="form-label">Nome completo</label><input asp-for="Item.Nome" class="form-control"/><span asp-validation-for="Item.Nome"></span></div><div class="col-md-4"><label asp-for="Item.DataNascimento" class="form-label">Data de nascimento</label><input asp-for="Item.DataNascimento" class="form-control"/></div>
+<div class="col-md-6"><label asp-for="Item.Escola" class="form-label">Escola</label><input asp-for="Item.Escola" class="form-control"/></div><div class="col-md-3"><label asp-for="Item.SerieAno" class="form-label">Ano/Série</label><input asp-for="Item.SerieAno" class="form-control"/></div><div class="col-md-3"><label asp-for="Item.Turno" class="form-label">Turno</label><select asp-for="Item.Turno" class="form-select"><option value="">Selecione</option><option>Matutino</option><option>Vespertino</option><option>Noturno</option><option>Integral</option></select></div>
+<div class="col-12"><label asp-for="Item.InformacoesGerais" class="form-label">Informações gerais</label><textarea asp-for="Item.InformacoesGerais" class="form-control" rows="4"></textarea></div><div class="col-12 form-check ms-2"><input asp-for="Item.Ativo" class="form-check-input"/><label asp-for="Item.Ativo" class="form-check-label">Aluno ativo</label></div></div>
+<div class="mt-4 d-flex gap-2"><button class="btn btn-primary">Salvar aluno</button><a class="btn btn-outline-secondary" asp-page="Index">Cancelar</a></div></form>
+@section Scripts{<partial name="_ValidationScriptsPartial"/>}

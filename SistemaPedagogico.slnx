@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SistemaPedagogico.Core/SistemaPedagogico.Core.csproj" />
+    <Project Path="src/SistemaPedagogico.Infrastructure/SistemaPedagogico.Infrastructure.csproj" />
+    <Project Path="src/SistemaPedagogico.Web/SistemaPedagogico.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SistemaPedagogico.Tests/SistemaPedagogico.Tests.csproj" />
+  </Folder>
+</Solution>

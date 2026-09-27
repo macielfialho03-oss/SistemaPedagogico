@@ -1,0 +1,97 @@
+@page
+@model SistemaPedagogico.Web.Pages.Responsaveis.IndexModel
+
+@{
+    ViewData["Title"] = "Responsáveis";
+}
+
+<div class="page-heading">
+    <div>
+        <span class="eyebrow">CADASTROS</span>
+        <h1>Responsáveis</h1>
+        <p>Contatos e vínculos familiares dos alunos.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <form method="post" class="form-card">
+            <h2 class="h5 mb-3">Novo responsável</h2>
+            <div asp-validation-summary="ModelOnly"></div>
+
+            <div class="mb-3">
+                <label class="form-label">Nome</label>
+                <input asp-for="Item.Nome" class="form-control" />
+                <span asp-validation-for="Item.Nome"></span>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Telefone</label>
+                <input asp-for="Item.Telefone" class="form-control" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">E-mail</label>
+                <input asp-for="Item.Email" class="form-control" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Vincular ao aluno</label>
+                <select asp-for="AlunoId" asp-items="Model.Alunos" class="form-select">
+                    <option value="">Vincular depois</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Parentesco</label>
+                <input asp-for="Parentesco" class="form-control" />
+            </div>
+
+            <div class="form-check mb-3">
+                <input asp-for="ContatoPrincipal" class="form-check-input" />
+                <label class="form-check-label">Contato principal</label>
+            </div>
+
+            <button class="btn btn-primary w-100">Cadastrar</button>
+        </form>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="table-card table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Contato</th>
+                        <th>Alunos vinculados</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var x in Model.Itens)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@x.Nome</td>
+                            <td>
+                                @x.Telefone<br />
+                                <small class="text-muted">@x.Email</small>
+                            </td>
+                            <td>@string.Join(", ", x.Alunos.Select(a => a.Aluno.Nome))</td>
+                        </tr>
+                    }
+
+                    @if (Model.Itens.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="3" class="empty-state">Nenhum responsável cadastrado.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+}
