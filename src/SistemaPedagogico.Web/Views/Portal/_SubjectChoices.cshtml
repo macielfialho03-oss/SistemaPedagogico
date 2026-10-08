@@ -1,0 +1,5 @@
+@model string
+@{ var subjects = (IEnumerable<Subject>)ViewData["RegistrationSubjects"]!; var selected = PortalRules.Ids(Model); }
+<fieldset class="choice-field span2"><legend>Matérias</legend><p class="help">Marque as matérias desejadas. Você pode selecionar mais de uma.</p><div class="choice-options">
+@foreach(var subject in subjects.Where(x=>x.Active)){<label class="choice-option"><input type="checkbox" name="SubjectIds" value="@subject.Id" checked="@(selected.Contains(subject.Id))"> @subject.Name</label>}
+</div>@if(!subjects.Any(x=>x.Active)){<p class="help">Cadastre uma matéria no menu Matérias para selecioná-la aqui.</p>}</fieldset>

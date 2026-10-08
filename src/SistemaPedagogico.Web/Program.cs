@@ -1,3 +1,8 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
+using System.Security.Claims;
+using SistemaPedagogico.Web.Portal;
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using SistemaPedagogico.Core.Entities;
@@ -9,7 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder
-    .Services.AddRazorPages()
+    .Services.AddRazorPages(options => { options.Conventions.AuthorizeFolder("/", "Administrator"); options.Conventions.AllowAnonymousToPage("/Error"); })
     .AddMvcOptions(options =>
         options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true
     );
@@ -23,6 +28,23 @@ builder.Services.AddDbContext<SistemaPedagogicoDbContext>(options =>
     options.UseSqlite($"Data Source={storagePaths.DatabasePath};Foreign Keys=True")
 );
 
+builder.Services.AddControllersWithViews();
+builder.Services.AddAuthorization(options => options.AddPolicy("Administrator", p => p.RequireRole("Admin")));
+builder.Services.AddDbContext<EducaDb>(options => options.UseSqlite(new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder { DataSource = Path.Combine(storagePaths.DataDirectory, "educamais.db"), ForeignKeys = true }.ToString()));
+builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(storagePaths.DataDirectory, "Chaves"))).SetApplicationName("EducaMais");
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(options => {
+ options.LoginPath = "/conta/entrar"; options.AccessDeniedPath = "/conta/negado"; options.Cookie.Name = "EducaMais.Session";
+ options.Cookie.HttpOnly = true; options.Cookie.SameSite = SameSiteMode.Lax; options.ExpireTimeSpan = TimeSpan.FromHours(8);
+ options.Events.OnValidatePrincipal = async context => {
+  var db = context.HttpContext.RequestServices.GetRequiredService<EducaDb>();
+  var id = int.TryParse(context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier), out var n) ? n : 0;
+  var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.Active);
+  var valid = user != null && user.Stamp == context.Principal?.FindFirstValue("stamp");
+  if(valid && user!.Role == "Aluno") valid = await db.Students.AnyAsync(x => x.Id == user.EntityId && x.Active);
+  if(valid && user!.Role == "Professor") valid = await db.Teachers.AnyAsync(x => x.Id == user.EntityId && x.Active);
+  if(!valid) { context.RejectPrincipal(); await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(context.HttpContext, CookieAuthenticationDefaults.AuthenticationScheme); }
+ };
+});
 var app = builder.Build();
 
 var ptBr = CultureInfo.GetCultureInfo("pt-BR");
@@ -55,16 +77,27 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+using (var scope = app.Services.CreateScope()) {
+ await PortalBootstrap.ImportAsync(scope.ServiceProvider.GetRequiredService<EducaDb>(), scope.ServiceProvider.GetRequiredService<SistemaPedagogicoDbContext>());
+}
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
 }
 
+app.Use(async (context, next) => {
+ if(context.Request.Path == "/") { context.Response.Redirect("/portal"); return; }
+ context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+ context.Response.Headers["Referrer-Policy"] = "same-origin";
+ await next();
+});
 app.UseRouting();
+app.UseAuthentication();
 
 app.UseAuthorization();
 
+app.MapControllers();
 app.MapStaticAssets();
 app.MapRazorPages().WithStaticAssets();
 

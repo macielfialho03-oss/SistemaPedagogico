@@ -1,0 +1,29 @@
+@model PortalVm
+@if(Model.Role!="Aluno"){
+<details id="novo-progresso" class="panel editor"><summary>＋ Registrar evolução do aluno</summary>
+<form action="/portal/salvar?kind=progress" method="post" class="form-grid" data-progress>@Html.AntiForgeryToken()
+<label>Aluno<select name="StudentId" required><option value="">Selecione...</option>@foreach(var p in Model.Students.Where(p=>p.Active)){<option value="@p.Id">@p.Name</option>}</select></label>
+@if(Model.Role=="Admin"){<label>Professor<select name="TeacherId" required><option value="">Selecione...</option>@foreach(var p in Model.Teachers.Where(p=>p.Active)){<option value="@p.Id">@p.Name</option>}</select></label>}
+<label>Atendimento<select name="ServiceType" required><option>Reforço escolar</option><option>Acompanhamento escolar</option></select></label>
+<label>Data<input name="Date" type="date" value="@DateTime.Today.ToString("yyyy-MM-dd")" required></label>
+<label>Matéria (opcional)<select name="SubjectId"><option value="">Geral</option>@foreach(var p in Model.Subjects.Where(p=>p.Active)){<option value="@p.Id">@p.Name</option>}</select></label>
+<label data-service="Reforço escolar">Dificuldade identificada<textarea name="Difficulty" maxlength="1000" placeholder="Ex.: dificuldade para resolver multiplicações" required></textarea></label>
+<label data-service="Acompanhamento escolar">Tarefas e prazos da escola<textarea name="Tasks" maxlength="1000" placeholder="Ex.: tarefa de leitura para sexta-feira"></textarea></label>
+<label data-service="Acompanhamento escolar">Autonomia<select name="Autonomy" required><option>Precisa de ajuda frequente</option><option>Realiza com alguma ajuda</option><option>Realiza com autonomia</option></select></label>
+<label>Objetivo<input name="Goal" required maxlength="500" placeholder="O que queremos que o aluno consiga fazer?"></label>
+<label>Conteúdo / estratégias trabalhadas<textarea name="Worked" required maxlength="1000" placeholder="O que foi feito e o que ajudou o aluno?"></textarea></label>
+<label>Evolução observada<textarea name="Evolution" required maxlength="1000" placeholder="Quais avanços ou dificuldades foram observados?"></textarea></label>
+<label>Próximos passos<textarea name="NextSteps" maxlength="1000"></textarea></label>
+<label class="span2">Observações adicionais<textarea name="Text" maxlength="3000"></textarea></label>
+<div class="span2"><button class="btn primary">Registrar progresso</button></div></form></details>}
+<div class="actions"><button type="button" class="btn subtle" onclick="window.print()">Imprimir histórico / salvar PDF</button></div>
+@foreach(var group in Model.Progress.GroupBy(x=>x.StudentId)){<section class="panel"><h2>@Model.StudentName(group.Key)</h2><div class="timeline">@foreach(var x in group){<article class="progress-entry"><span class="badge">@x.ServiceType</span><p>@x.Date.ToString("dd/MM/yyyy") · @Model.TeacherName(x.TeacherId) · @Model.SubjectName(x.SubjectId)</p>
+@if(x.Goal!=""){<p><strong>Objetivo:</strong> @x.Goal</p>}
+@if(x.Difficulty!=""){<p><strong>Dificuldade:</strong> @x.Difficulty</p>}
+@if(x.Tasks!=""){<p><strong>Tarefas da escola:</strong> @x.Tasks</p>}
+@if(x.Autonomy!=""){<p><strong>Autonomia:</strong> @x.Autonomy</p>}
+@if(x.Worked!=""){<p><strong>Trabalhado:</strong> @x.Worked</p>}
+@if(x.Evolution!=""){<p><strong>Evolução:</strong> @x.Evolution</p>}
+@if(x.NextSteps!=""){<p><strong>Próximos passos:</strong> @x.NextSteps</p>}
+@if(x.Text!=""){<p class="preserve">@x.Text</p>}</article>}</div></section>}
+@if(Model.Progress.Count==0){<div class="panel empty">Registre o primeiro atendimento para acompanhar a evolução do aluno.</div>}

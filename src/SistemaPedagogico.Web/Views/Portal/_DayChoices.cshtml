@@ -1,0 +1,5 @@
+@model string
+@{ var names = new[] { "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo" }; var selected = PortalRules.Ids(Model); }
+<fieldset class="choice-field span2"><legend>Dias de atendimento</legend><p class="help">Marque os dias em que o professor está disponível.</p><div class="choice-options">
+@for(var i=0;i<names.Length;i++){<label class="choice-option"><input type="checkbox" name="Days" value="@(i+1)" checked="@(selected.Contains(i+1))"> @names[i]</label>}
+</div></fieldset>

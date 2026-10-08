@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -15,9 +15,11 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\SistemaPedagogico.Web\SistemaPedagogico.Web.csproj" />
     <ProjectReference Include="..\..\src\SistemaPedagogico.Core\SistemaPedagogico.Core.csproj" />
     <ProjectReference Include="..\..\src\SistemaPedagogico.Infrastructure\SistemaPedagogico.Infrastructure.csproj" />
   </ItemGroup>

@@ -1,0 +1,14 @@
+@model Lesson
+@{var vm=(PortalVm)ViewData["PortalVm"]!;}
+<form action="/portal/salvar?kind=lesson" method="post" class="form-grid" data-lesson>@Html.AntiForgeryToken()
+<input type="hidden" name="Id" value="@Model.Id">
+@if(vm.Role!="Aluno"){<label>Aluno<select name="StudentId" data-current="@(Model.StudentId==0?"":Model.StudentId.ToString())" required><option value="">Selecione...</option>@foreach(var p in vm.Students.Where(x=>x.Active)){<option value="@p.Id">@p.Name</option>}</select></label>}
+@if(vm.Role!="Professor"){<label>Professor<select name="TeacherId" data-current="@(Model.TeacherId==0?"":Model.TeacherId.ToString())" required><option value="">Selecione...</option>@foreach(var p in vm.Teachers.Where(x=>x.Active)){<option value="@p.Id">@p.Name</option>}</select></label>}
+<label>Matéria<select name="SubjectId" data-current="@(Model.SubjectId==0?"":Model.SubjectId.ToString())" required><option value="">Selecione...</option>@foreach(var p in vm.Subjects.Where(x=>x.Active)){<option value="@p.Id">@p.Name</option>}</select></label>
+<label>Duração<select name="Minutes" data-current="@Model.Minutes" required><option value="30">30 minutos</option><option value="60">1 hora</option><option value="90">1 hora e meia</option><option value="120">2 horas</option></select></label>
+<label>Dia da aula<input name="LessonDate" type="date" min="@DateTime.Today.ToString("yyyy-MM-dd")" value="@(Model.Id==0?"":Model.Start.ToString("yyyy-MM-dd"))" required></label>
+<label>Horário disponível<select name="Start" data-selected="@(Model.Id==0?"":Model.Start.ToString("yyyy-MM-ddTHH:mm"))" required><option value="">Escolha aluno, professor, matéria e dia</option></select><small data-slots-note></small></label>
+<label>Modalidade<select name="Mode" data-current="@Model.Mode" required><option>Presencial</option><option>Online</option></select></label>
+<label data-online>Link da aula<input name="OnlineUrl" type="url" value="@Model.OnlineUrl" placeholder="https://..."></label>
+<label class="span2">Observações<textarea name="Notes" maxlength="1000">@Model.Notes</textarea></label>
+<div class="span2"><button class="btn primary">@(Model.Id==0?"Agendar aula":"Salvar remarcação")</button></div></form>

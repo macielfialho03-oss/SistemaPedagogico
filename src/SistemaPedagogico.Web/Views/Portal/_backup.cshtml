@@ -1,0 +1,2 @@
+@model PortalVm
+<section class="panel"><h2>Backup completo</h2><p>Baixe uma cópia dos dois bancos de dados e dos arquivos de materiais e entregas. Guarde em um local seguro.</p><form method="post" action="/portal/backup">@Html.AntiForgeryToken()<button class="btn primary">Baixar backup ZIP</button></form><p class="help">Para restaurar, encerre o aplicativo e copie os arquivos do backup para a mesma pasta de dados. Faça uma cópia da pasta atual antes.</p></section>

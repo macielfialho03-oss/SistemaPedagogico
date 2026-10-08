@@ -1,0 +1,13 @@
+@model PortalVm
+@{ViewData["PortalVm"]=Model;var newLesson=new Lesson();}
+<details id="nova-aula" class="panel editor"><summary>＋ Agendar aula</summary><partial name="_LessonForm" model="newLesson" /></details>
+<p class="help">Escolha o aluno para ver professores vinculados, matérias e horários disponíveis.</p>
+<details class="panel"><summary>Disponibilidade dos professores</summary>@foreach(var p in Model.Teachers.Where(x=>x.Active)){<p><strong>@p.Name</strong> · @Model.SubjectNames(p.SubjectIds)<small>@PortalVm.Weekdays(p.Days) · @(p.StartHour.ToString("00")):00 às @(p.EndHour.ToString("00")):00</small></p>}</details>
+<div class="table-wrap"><table><thead><tr><th>Aluno</th><th>Matéria / Professor</th><th>Horário</th><th>Modalidade</th><th>Situação</th><th>Ações</th></tr></thead><tbody>
+@foreach(var x in Model.Lessons){<tr><td>@Model.StudentName(x.StudentId)</td><td>@Model.SubjectName(x.SubjectId)<small>@Model.TeacherName(x.TeacherId)</small></td><td>@x.Start.ToString("dd/MM/yyyy HH:mm")<small>@x.Minutes minutos</small></td><td>@x.Mode<small>@x.Notes</small>@if(x.OnlineUrl!=""){<a class="btn subtle" href="@x.OnlineUrl" target="_blank" rel="noopener">Entrar na aula</a>}</td><td><span class="badge">@x.Status</span><small>@x.Attendance</small></td><td class="row-actions">
+@if(x.Status=="Agendada"){
+<details><summary>Remarcar</summary><partial name="_LessonForm" model="x" /></details>
+<form action="/portal/salvar?kind=lesson-status" method="post" data-confirm="Cancelar esta aula de @Model.StudentName(x.StudentId)?">@Html.AntiForgeryToken()<input type="hidden" name="Id" value="@x.Id"><input type="hidden" name="Status" value="Cancelada"><button class="btn danger">Cancelar</button></form>
+@if(Model.Role!="Aluno"){<details><summary>Concluir / presença</summary><form action="/portal/salvar?kind=lesson-status" method="post" class="form-grid">@Html.AntiForgeryToken()<input type="hidden" name="Id" value="@x.Id"><input type="hidden" name="Status" value="Concluída"><label>Frequência<select name="Attendance" required><option>Presente</option><option>Falta</option></select></label><button class="btn primary">Concluir aula</button></form></details>}}
+</td></tr>}
+@if(Model.Lessons.Count==0){<tr><td colspan="6" class="empty">Nenhuma aula agendada.</td></tr>}</tbody></table></div>
