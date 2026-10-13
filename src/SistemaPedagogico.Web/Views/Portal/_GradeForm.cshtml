@@ -1,0 +1,11 @@
+@model Grade
+@{var vm=(PortalVm)ViewData["PortalVm"]!;}
+<form action="/portal/salvar?kind=grade" method="post" class="form-grid" data-grade>@Html.AntiForgeryToken()<input name="Id" type="hidden" value="@Model.Id">
+<label>Aluno<select name="StudentId" data-current="@Model.StudentId" required><option value="">Selecione o aluno</option>@foreach(var s in vm.Students.Where(s=>s.Active)){<option value="@s.Id">@s.Name</option>}</select></label>
+<label>Matéria<select name="SubjectId" data-current="@Model.SubjectId" required><option value="">Selecione a matéria</option>@foreach(var s in vm.Subjects.Where(s=>s.Active)){<option value="@s.Id">@s.Name</option>}</select></label>
+<label>Origem da nota<select name="Source" data-current="@Model.Source"><option value="Avaliação da professora">Avaliação do professor</option><option>Nota da escola</option></select></label>
+<label>Nome da avaliação<input name="Title" value="@Model.Title" maxlength="150" required placeholder="Ex.: Prova de leitura — 1º bimestre"></label>
+<label>Nota (0 a 10)<input name="Value" data-score inputmode="decimal" value="@(Model.Id==0?"":Model.Value.ToString("0.0"))" required placeholder="Ex.: 7,5"><small>Use vírgula ou ponto para os decimais.</small></label>
+<label>Data da avaliação<input name="Date" type="date" max="@DateTime.Today.ToString("yyyy-MM-dd")" value="@Model.Date.ToString("yyyy-MM-dd")" required></label>
+<label class="span2">Comentário para o aluno (opcional)<textarea name="Comment" maxlength="1000" rows="3">@Model.Comment</textarea></label>
+<div class="span2 form-actions"><button class="btn primary">Salvar nota</button>@if(Model.Id==0){<button class="btn subtle" name="Continue" value="true">Salvar e lançar outra</button>}<button type="button" class="btn subtle" data-close-editor>Cancelar</button></div></form>

@@ -1,0 +1,7 @@
+@model PortalVm
+<div class="filter-bar" data-filter-bar>
+@if(Model.Role!="Aluno"){<label>Aluno<select data-filter="student"><option value="">Todos os alunos</option>@foreach(var s in Model.Students){<option value="@s.Id">@s.Name</option>}</select></label>}
+@if(Model.Section!="mensalidades"){<label>Matéria<select data-filter="subject"><option value="">Todas as matérias</option>@foreach(var s in Model.Subjects){<option value="@s.Id">@s.Name</option>}</select></label>}
+<label>A partir de<input type="date" data-filter="from"></label><label>Até<input type="date" data-filter="until"></label>
+<label>Buscar<input type="search" data-filter="text" placeholder="Buscar nesta lista…"></label><button type="button" class="btn subtle" data-clear-filters>Limpar filtros</button>
+</div><p class="help" data-filter-count aria-live="polite"></p>

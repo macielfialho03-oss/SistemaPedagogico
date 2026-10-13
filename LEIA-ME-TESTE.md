@@ -1,13 +1,13 @@
-# EducaMais — versão para teste
+# Tutoring — versão para teste
 
-Este pacote contém a versão 4. Foi compilado e verificado com 28 testes automatizados e carregamento das 13 áreas por HTTP. A conferência visual no Windows continua necessária. Veja `VERSAO-4.md` para novidades e roteiro de teste; para manter seus dados atuais, siga `ATUALIZAR-CADASTROS.md`.
+Este pacote contém o **Tutoring — Reforço e Acompanhamento Escolar, versão 4.1**. Foi compilado e verificado com 39 testes automatizados, 28 páginas por HTTP e testes de navegador nos três perfis, em desktop e celular. Veja `VERSAO-4.1.md` para novidades; para manter seus cadastros, siga `ATUALIZAR-CADASTROS.md`.
 
 ## Começar
 
 1. Instale o **SDK do .NET 10**, Windows x64: https://dotnet.microsoft.com/download/dotnet/10.0.
-2. Extraia este ZIP em uma **pasta nova**, por exemplo `Documentos\GITS\EducaMais-teste`. Não substitua a pasta original.
-3. Execute `Verificar-EducaMais.cmd`. Ele compila o projeto e executa os testes. Se falhar, envie `resultado-testes.txt` para revisão.
-4. Execute `Iniciar-EducaMais.cmd` e aguarde `Now listening on: http://localhost:5003`.
+2. Extraia este ZIP em uma **pasta nova**, por exemplo `Documentos\GITS\Tutoring-teste`. Não substitua a pasta original.
+3. Execute `Verificar-Tutoring.cmd`. Ele compila o projeto e executa os testes. Se falhar, envie `resultado-testes.txt` para revisão.
+4. Execute `Iniciar-Tutoring.cmd` e aguarde `Now listening on: http://localhost:5003`.
 5. Abra http://localhost:5003. Crie o primeiro administrador com nome, e-mail e senha de pelo menos 10 caracteres. Esse passo só funciona pelo próprio computador que executa o servidor.
 6. Entre com sua conta. Não há senhas de demonstração predefinidas.
 
@@ -15,7 +15,7 @@ Encerre outra instância do app com Ctrl+C antes de iniciar a nova: ambas usam a
 
 ## Testar todos os perfis
 
-Siga o roteiro de `VERSAO-4.md`. Cadastre matérias, professor e aluno; selecione matérias e dias pelas caixas de seleção. Defina professor inicial no cadastro ou vincule depois. Crie acessos selecionando nomes, sem informar IDs manualmente. Na agenda, escolha os horários disponíveis e use Remarcar na própria linha. Confira aluno/professor separadamente para validar permissões e entregas.
+Siga o roteiro de `VERSAO-4.1.md`. Cadastre matérias, professor e aluno; selecione matérias e dias pelas caixas de seleção. Defina professor inicial no cadastro ou vincule depois. Crie acessos selecionando nomes, sem informar IDs manualmente. Na agenda, escolha os horários disponíveis e use Remarcar na própria linha. Confira aluno/professor separadamente para validar permissões e entregas.
 
 ## Dados antigos e novos
 
@@ -31,7 +31,7 @@ Siga o roteiro de `VERSAO-4.md`. Cadastre matérias, professor e aluno; selecion
 
 ## Escopo e limitações
 
-O escopo e as limitações da versão 4 estão em `VERSAO-4.md`. O aplicativo funciona localmente com .NET 10 e SQLite. Não contém senhas fixas de demonstração. O banco novo e o histórico anterior continuam separados após a importação inicial. Para atualização com dados existentes, siga `ATUALIZAR-CADASTROS.md`.
+O escopo e as limitações da versão 4.1 estão em `VERSAO-4.1.md`. O aplicativo funciona localmente com .NET 10 e SQLite. Não contém senhas fixas de demonstração. O banco novo e o histórico anterior continuam separados após a importação inicial. Para atualização com dados existentes, siga `ATUALIZAR-CADASTROS.md`.
 
 ## Desenvolvimento
 

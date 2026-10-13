@@ -8,7 +8,7 @@ if errorlevel 1 (
  pause
  exit /b 1
 )
-echo EducaMais: abra http://localhost:5003 quando aparecer "Now listening on".
+echo Tutoring: abra http://localhost:5003 quando aparecer "Now listening on".
 echo Deixe esta janela aberta. Para encerrar, pressione Ctrl+C.
 dotnet run --project src\SistemaPedagogico.Web --launch-profile http
 if errorlevel 1 pause

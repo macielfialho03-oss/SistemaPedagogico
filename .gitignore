@@ -3,14 +3,8 @@
 **/Dados/
 **/Chaves/
 **/Arquivos/
-.buildcheck/
-.vs/
-publish/
-deploy/App/
-*.user
-*.suo
 *.db
 *.db-wal
 *.db-shm
-*.sqlite*
 resultado-testes.txt
+.vs/

@@ -25,14 +25,15 @@ public static class PortalBootstrap {
  var connection=db.Database.GetDbConnection();
  // Snapshot only when an on-disk database still needs the version 4 columns.
  using(var check=connection.CreateCommand()){
- check.CommandText="SELECT COUNT(*) FROM pragma_table_info('Students') WHERE name='ServiceType'";
+ check.CommandText="SELECT COUNT(*) FROM pragma_table_info('Progress') WHERE name='InternalNotes'";
  if(Convert.ToInt32(await check.ExecuteScalarAsync())==0&&connection is Microsoft.Data.Sqlite.SqliteConnection sqlite&&File.Exists(sqlite.DataSource)){
  var backupDir=Path.Combine(Path.GetDirectoryName(Path.GetFullPath(sqlite.DataSource))!,"Backups");Directory.CreateDirectory(backupDir);
- using var backup=new Microsoft.Data.Sqlite.SqliteConnection(new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder{DataSource=Path.Combine(backupDir,"educamais-antes-v4-"+DateTime.Now.ToString("yyyyMMdd-HHmmss")+"-"+Guid.NewGuid().ToString("N")+".db")}.ToString());backup.Open();sqlite.BackupDatabase(backup);
+ using var backup=new Microsoft.Data.Sqlite.SqliteConnection(new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder{DataSource=Path.Combine(backupDir,"tutoring-antes-v4.1-"+DateTime.Now.ToString("yyyyMMdd-HHmmss")+"-"+Guid.NewGuid().ToString("N")+".db")}.ToString());backup.Open();sqlite.BackupDatabase(backup);
  }
  }
  await using var upgrade=await db.Database.BeginTransactionAsync();
  var additions=new (string table,string column,string definition)[]{
+ ("Progress","InternalNotes","TEXT NOT NULL DEFAULT ''"),("Progress","LessonId","INTEGER NULL"),("Payments","History","TEXT NOT NULL DEFAULT ''"),
  ("Students","ServiceType","TEXT NOT NULL DEFAULT 'Reforço escolar'"),("Students","RegistrationKey","TEXT NOT NULL DEFAULT ''"),
  ("Lessons","OnlineUrl","TEXT NOT NULL DEFAULT ''"),("Grades","Source","TEXT NOT NULL DEFAULT 'Avaliação da professora'"),
  ("Activities","Origin","TEXT NOT NULL DEFAULT 'Proposta da professora'"),("Activities","AssignmentKey","TEXT NULL"),("Activities","AssignmentName","TEXT NULL"),
