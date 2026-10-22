@@ -3,7 +3,7 @@
 <form action="/portal/salvar?kind=progress" method="post" class="form-grid" data-progress>@Html.AntiForgeryToken()<input name="Id" type="hidden" value="@Model.Id">
 <h3 class="span2 form-section">1. Aluno e atendimento</h3>
 <label>Aluno<select name="StudentId" data-current="@Model.StudentId" required><option value="">Selecione o aluno</option>@foreach(var s in vm.Students.Where(s=>s.Active)){<option value="@s.Id">@s.Name</option>}</select></label>
-@if(vm.Role=="Admin"){<label>Professor<select name="TeacherId" data-current="@Model.TeacherId" required><option value="">Selecione o professor</option>@foreach(var s in vm.Teachers.Where(s=>s.Active)){<option value="@s.Id">@s.Name</option>}</select></label>}
+
 <label>Atendimento<select name="ServiceType" data-current="@Model.ServiceType" required><option>Reforço escolar</option><option>Acompanhamento escolar</option></select></label>
 <label>Aula concluída (opcional)<select name="LessonId" data-current="@Model.LessonId"><option value="">Registro sem vínculo com aula</option>@foreach(var l in vm.Lessons.Where(l=>l.Status=="Concluída"&&l.Start<=DateTime.Now)){<option value="@l.Id" data-student="@l.StudentId" data-teacher="@l.TeacherId" data-subject="@l.SubjectId" data-date="@l.Start.ToString("yyyy-MM-dd")">@l.Start.ToString("dd/MM HH:mm") · @vm.StudentName(l.StudentId) · @vm.SubjectName(l.SubjectId)</option>}</select></label>
 <label>Data<input name="Date" type="date" max="@DateTime.Today.ToString("yyyy-MM-dd")" value="@Model.Date.ToString("yyyy-MM-dd")" required></label>
@@ -19,5 +19,5 @@
 <label>Evolução observada<textarea name="Evolution" required maxlength="1000" placeholder="Quais avanços foram observados?">@Model.Evolution</textarea></label>
 <label>Próximos passos (opcional)<textarea name="NextSteps" maxlength="1000">@Model.NextSteps</textarea></label>
 <label class="span2">Observações compartilhadas com o aluno (opcional)<textarea name="Text" maxlength="3000">@Model.Text</textarea></label>
-<label class="span2 internal-note">Anotações internas (opcional)<textarea name="InternalNotes" maxlength="3000">@Model.InternalNotes</textarea><small>Visíveis apenas ao administrador e ao professor responsável pelo registro. Não aparecem no perfil do aluno.</small></label>
+<label class="span2 internal-note">Anotações internas (opcional)<textarea name="InternalNotes" maxlength="3000">@Model.InternalNotes</textarea><small>Visíveis apenas à professora. Não aparecem no perfil do aluno.</small></label>
 <div class="span2 form-actions"><button class="btn primary">Salvar progresso</button><button type="button" class="btn subtle" data-close-editor>Cancelar</button></div></form>

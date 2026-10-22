@@ -1,8 +1,8 @@
 @model PortalUser
 @{var vm=(PortalVm)ViewData["PortalVm"]!;}
 <form action="/portal/salvar?kind=user" method="post" class="form-grid" data-user>@Html.AntiForgeryToken()<input name="Id" type="hidden" value="@Model.Id">
-<label>Perfil<select name="Role" data-current="@Model.Role" required><option value="Aluno">Aluno</option><option value="Professor">Professor</option><option value="Admin">Administrador</option></select></label>
-<label data-account-entity>Cadastro vinculado<select name="EntityId" data-current="@Model.EntityId"><option value="">Selecione pelo nome...</option>@foreach(var p in vm.Students.Where(x=>x.Active)){<option data-role="Aluno" data-email="@p.Email" value="@p.Id">@p.Name</option>}@foreach(var p in vm.Teachers.Where(x=>x.Active)){<option data-role="Professor" data-email="@p.Email" value="@p.Id">@p.Name</option>}</select></label>
+<input name="Role" type="hidden" value="@(Model.Role=="Admin"?"Admin":"Aluno")"><p class="help span2">@(Model.Role=="Admin"?"Sua conta reúne administração e ensino.":"Acesso individual do aluno. Ele verá apenas seus próprios registros.")</p>
+<label data-account-entity>Cadastro vinculado<select name="EntityId" data-current="@Model.EntityId"><option value="">Selecione pelo nome...</option>@foreach(var p in vm.Students.Where(x=>x.Active)){<option data-role="Aluno" data-email="@p.Email" value="@p.Id">@p.Name</option>}</select></label>
 <label>Nome completo<input name="Name" data-fullname value="@Model.Name" required maxlength="120"></label>
 <label>E-mail de acesso<input name="Email" type="email" value="@Model.Email" required maxlength="150"></label>
 @if(Model.Id==0){<label class="span2">@(Model.Id==0?"Senha (mínimo 10 caracteres)":"Nova senha (deixe vazio para manter)")<input name="Password" type="password" minlength="10" maxlength="256" autocomplete="new-password" required="@(Model.Id==0)"><span class="actions"><button type="button" class="btn subtle" data-show-password>Mostrar senha</button><button type="button" class="btn subtle" data-generate-password>Gerar senha</button></span></label>}

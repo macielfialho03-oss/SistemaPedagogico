@@ -1,0 +1,12 @@
+@model Activity
+@{var vm=(PortalVm)ViewData["PortalVm"]!;var recipients=vm.Activities.Where(x=>PortalRules.ActivityGroup(x)==PortalRules.ActivityGroup(Model)).ToList();}
+<form action="/portal/salvar?kind=activity" method="post" enctype="multipart/form-data" class="form-grid">@Html.AntiForgeryToken()
+<input name="Id" type="hidden" value="@Model.Id"><input name="ReturnActivityId" type="hidden" value="@Model.Id">
+@if(Model.Id==0){<fieldset class="choice-field span2"><legend>1. Alunos que receberão a atividade</legend><small data-recipient-count>0 alunos selecionados</small><input type="search" data-choice-search placeholder="Buscar aluno pelo nome" aria-label="Buscar destinatário"><div class="choice-options">@foreach(var p in vm.Students.Where(p=>p.Active)){<label class="choice-option"><input type="checkbox" name="StudentIds" value="@p.Id">@p.Name</label>}</div><p class="help">Selecione um ou mais alunos. Serão mostradas as matérias em comum.</p></fieldset>}
+else{<p class="help span2">As alterações do enunciado serão aplicadas aos @recipients.Count destinatários.</p>@foreach(var row in recipients){<input name="StudentIds" type="hidden" value="@row.StudentId">}}
+<label>Matéria<select name="SubjectId" data-current="@Model.SubjectId" required><option value="">Selecione...</option>@foreach(var p in vm.Subjects.Where(p=>p.Active)){<option value="@p.Id">@p.Name</option>}</select></label>
+<label>Origem<select name="Origin" data-current="@Model.Origin"><option>Proposta da professora</option><option>Tarefa da escola</option></select></label>
+<label>Título<input name="Title" value="@Model.Title" required maxlength="150"></label><label>Prazo<input name="Due" type="date" value="@(Model.Id==0?"":Model.Due.ToString("yyyy-MM-dd"))" required></label>
+<label class="span2">Enunciado<textarea name="Description" maxlength="3000" rows="4">@Model.Description</textarea></label>
+<label class="span2">@(Model.Id==0?"Anexar atividade (opcional)":"Substituir anexo (opcional)")<input type="file" name="attachment" accept="@AttachmentRules.Accept"><small>@AttachmentRules.Help</small>@if(Model.AssignmentKey!=null){<small>Arquivo atual: @Model.AssignmentName. Mantido se nenhum novo arquivo for escolhido.</small>}</label>
+<div class="span2 form-actions"><button class="btn primary">@(Model.Id==0?"Publicar atividade":"Salvar para todos")</button><button type="button" class="btn subtle" data-close-editor>Cancelar</button></div></form>

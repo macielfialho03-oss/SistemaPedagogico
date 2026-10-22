@@ -1,0 +1,9 @@
+@model Lesson
+@{var vm=(PortalVm)ViewData["PortalVm"]!;var x=Model;}
+<div class="lesson-participant"><div>@if(vm.Role!="Aluno"){<strong>@vm.StudentName(x.StudentId)</strong>}<span class="badge @(x.Status=="Concluída"?"good":x.Status=="Cancelada"?"bad":"")">@(x.Status=="Concluída"?x.Attendance:x.Status=="Agendada"&&x.Start<=DateTime.Now?"Aguardando presença":x.Status)</span></div>
+<div class="actions">
+@if(x.Status=="Agendada"){
+@if(vm.Role!="Aluno"&&x.Start<=DateTime.Now){<details><summary>Registrar presença</summary><form action="/portal/salvar?kind=lesson-status" method="post" class="form-grid">@Html.AntiForgeryToken()<input name="Id" type="hidden" value="@x.Id"><input name="Status" type="hidden" value="Concluída"><p class="span2">@vm.StudentName(x.StudentId) · @x.Start.ToString("dd/MM HH:mm")</p><label>Presença<select name="Attendance" required><option>Presente</option><option>Falta</option></select></label><button class="btn primary">Salvar presença</button></form></details>}
+@if(vm.Role=="Aluno"?x.Start>DateTime.Now:vm.Lessons.Count(l=>PortalRules.LessonGroup(l)==PortalRules.LessonGroup(x))>1){<form action="/portal/salvar?kind=lesson-status" method="post" data-confirm="Cancelar somente esta participação na aula?">@Html.AntiForgeryToken()<input name="Id" type="hidden" value="@x.Id"><input name="Status" type="hidden" value="Cancelada"><button class="btn danger">@(vm.Role=="Aluno"?"Cancelar minha participação":"Cancelar participação")</button></form>}
+}
+</div></div>

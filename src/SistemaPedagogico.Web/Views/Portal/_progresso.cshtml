@@ -5,7 +5,7 @@
 <div class="actions print-tools"><button type="button" class="btn subtle" data-print>Imprimir / salvar PDF</button><span class="help">@(Model.Role=="Aluno"?"O relatório respeita o período e a matéria selecionados.":"O relatório respeita os filtros e omite as anotações internas.")</span></div>
 <div class="timeline progress-list">
 @foreach(var x in Model.Progress){<article class="panel progress-entry record" data-record data-student="@x.StudentId" data-subject="@x.SubjectId" data-date="@x.Date.ToString("yyyy-MM-dd")" data-evolution="@x.Evolution" data-next="@x.NextSteps">
-<div class="panel-head"><div><span class="badge">@x.ServiceType</span><h2>@(Model.Role=="Aluno"?Model.SubjectName(x.SubjectId):Model.StudentName(x.StudentId))</h2><p class="record-meta">@x.Date.ToString("dd/MM/yyyy") · @Model.TeacherName(x.TeacherId)@if(Model.Role!="Aluno"){<span> · @Model.SubjectName(x.SubjectId)</span>}</p></div></div>
+<div class="panel-head"><div><span class="badge">@x.ServiceType</span><h2>@(Model.Role=="Aluno"?Model.SubjectName(x.SubjectId):Model.StudentName(x.StudentId))</h2><p class="record-meta">@x.Date.ToString("dd/MM/yyyy")@if(Model.Role!="Aluno"){<span> · @Model.SubjectName(x.SubjectId)</span>}</p></div></div>
 <div class="progress-highlights"><section><h3>@(Model.Role=="Aluno"?"Meus avanços":"Evolução observada")</h3><p class="preserve">@(x.Evolution==""?"Consulte os detalhes deste registro.":x.Evolution)</p></section>@if(x.NextSteps!=""){<section><h3>Próximos objetivos</h3><p class="preserve">@x.NextSteps</p></section>}</div>
 <details class="record-details"><summary>Ver detalhes</summary>
 @if(x.Goal!=""){<h3>O que estamos aprendendo</h3><p class="preserve">@x.Goal</p>}

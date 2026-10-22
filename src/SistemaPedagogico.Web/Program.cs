@@ -41,7 +41,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
   var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.Active);
   var valid = user != null && user.Stamp == context.Principal?.FindFirstValue("stamp");
   if(valid && user!.Role == "Aluno") valid = await db.Students.AnyAsync(x => x.Id == user.EntityId && x.Active);
-  if(valid && user!.Role == "Professor") valid = await db.Teachers.AnyAsync(x => x.Id == user.EntityId && x.Active);
+  if(valid && user!.Role != "Aluno") valid = user.Role == "Admin" && await db.Settings.AnyAsync(x => x.Key == SingleTeacher.OwnerKey && x.Value == user.Id.ToString());
   if(!valid) { context.RejectPrincipal(); await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(context.HttpContext, CookieAuthenticationDefaults.AuthenticationScheme); }
  };
 });

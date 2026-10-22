@@ -1,4 +1,4 @@
-# Tutoring — versão 4.1
+# Tutoring — versão 4.3
 
 Versão de teste inspirada no protótipo Tutoring, construída sobre o projeto Caderno Pedagógico com ASP.NET Core, .NET 10 e SQLite.
 
@@ -7,18 +7,18 @@ Versão de teste inspirada no protótipo Tutoring, construída sobre o projeto C
 1. Instale o SDK .NET 10.
 2. Execute `Verificar-Tutoring.cmd` para compilar e rodar os testes.
 3. Execute `Iniciar-Tutoring.cmd`.
-4. Abra http://localhost:5003 e crie o administrador.
+4. Abra http://localhost:5003 e crie a conta da professora.
 
-Validação da versão 4.1: compilação .NET/Razor, **39 testes automatizados**, 28 páginas dos três perfis por HTTP e testes de navegador em desktop e celular. Matrícula por etapas, notas com vírgula e lançamento contínuo, preservação após erro e recuperação de backup foram verificadas com dados sintéticos. Veja [VERSAO-4.1.md](VERSAO-4.1.md).
+Veja as mudanças e regras de migração em [VERSAO-4.3.md](VERSAO-4.3.md).
 
 ## Recursos
 
-- Perfis de administrador, professor e aluno com permissões no servidor.
-- Cadastros de alunos/responsáveis, professores, matérias e contas.
-- Aulas com disponibilidade, prevenção de conflitos, cancelamento, remarcação e frequência.
-- Notas, atividades com entrega e correção, materiais e histórico de progresso.
+- Conta única da professora (administração e ensino) e acessos individuais dos alunos.
+- Cadastros de alunos/responsáveis, matérias e contas.
+- Aulas individuais ou em grupo, escolha direta de horário, prevenção de conflitos, cancelamento, remarcação e frequência.
+- Notas, atividades agrupadas com página de entregas e correção individual, materiais e histórico de progresso.
 - Registro de mensalidades e pagamentos, CSV e backup completo.
-- Preservação do histórico pedagógico anterior em uma área exclusiva do administrador.
+- Preservação do histórico pedagógico anterior em uma área exclusiva da professora.
 
 ## Executar pelo terminal
 
@@ -28,6 +28,8 @@ dotnet run --project src\SistemaPedagogico.Web --launch-profile http
 
 ## Dados e atualizações
 
-O portal usa `educamais.db` ao lado do banco original. Os dados anteriores são importados uma vez; não há sincronização posterior. Não apague bancos para atualizar o programa. A versão 4.1 atualiza o banco existente automaticamente, preservando o histórico. Faça uma cópia da pasta Dados antes de atualizar.
+O portal usa `educamais.db` ao lado do banco original. Os dados anteriores são importados uma vez; não há sincronização posterior. Não apague bancos para atualizar o programa. A versão 4.3 atualiza o banco existente automaticamente, preservando o histórico. Faça uma cópia da pasta Dados antes de atualizar.
 
 Não versionar bancos, anexos ou chaves de sessão. O código não contém credenciais fixas de demonstração.
+
+Validação: 65 testes automatizados aprovados e fluxos conferidos em navegador desktop e celular, com dados de teste.

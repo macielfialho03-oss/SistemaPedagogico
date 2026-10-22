@@ -15,3 +15,40 @@ body{font-size:14px;line-height:1.45}.main{max-width:1720px;min-height:100vh;dis
 @media print{.filter-bar,.tabs,.print-tools,.editor-launch,.internal-note,.notice,.week-nav{display:none!important}[data-record][hidden]{display:none!important}.record-grid{display:block}.record-details{display:block}.record-details summary{display:none}.progress-highlights{display:block}.progress-highlights section{background:white;padding:0}.main{display:block;max-width:none}.progress-entry{break-inside:avoid;box-shadow:none;border:1px solid #aaa}.timeline{border-color:#aaa}.record-meta{color:#333}.score{color:#000}}
 
 .icon-definitions{position:absolute;width:0;height:0;overflow:hidden}.nav-icon{width:21px;height:21px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.editor-dialog .form-actions{position:sticky;bottom:-26px;background:white;padding:14px 0 8px;z-index:2}.record .actions{margin:12px 0}.record .actions+.filename{margin-top:0}@media(max-width:760px){.editor-dialog .form-actions{bottom:-18px}.nav-icon{width:19px;height:19px}}
+
+/* Versão 4.2: horários legíveis e previsão das mensalidades. */
+.lesson-card{display:grid;grid-template-columns:180px minmax(0,1fr) auto;gap:20px;align-items:start;padding:20px}
+.lesson-card .lesson-time{width:auto;min-width:0;padding:14px 10px;text-align:center;border-radius:12px;background:#f4f1ff}
+.lesson-time strong{display:block;white-space:nowrap;overflow-wrap:normal;font-variant-numeric:tabular-nums;font-size:20px}
+.lesson-time strong span{font-size:13px;font-weight:400;color:#667085}
+.lesson-time small{display:block;margin-top:6px;color:#667085}
+.lesson-body h3{margin-top:0}.lesson-body p:empty{display:none}
+.lesson-actions{justify-content:flex-end;align-items:center;max-width:260px;flex-wrap:wrap}
+.billing-preview{margin-top:16px;padding:16px;background:#f8f7fc;border:1px solid #e9e5f4;border-radius:12px}
+.billing-preview ol{margin:12px 0 0;padding-left:24px;max-height:220px;overflow:auto}
+.billing-preview li{padding:6px;font-variant-numeric:tabular-nums}.billing-preview strong{display:block}
+.availability-panel{max-width:760px}
+@media(max-width:900px){.lesson-card{grid-template-columns:165px minmax(0,1fr)}.lesson-actions{grid-column:1/-1;max-width:none;justify-content:flex-start}}
+@media(max-width:520px){.lesson-card{grid-template-columns:minmax(0,1fr);gap:14px}.lesson-card .lesson-time{text-align:left;padding:12px 14px}.lesson-time strong{font-size:21px}.lesson-actions{grid-column:1}.week-nav{flex-wrap:wrap;gap:10px}.week-nav strong{order:-1;flex-basis:100%}}
+
+/* Versão 4.3: aulas em grupo e uma publicação por atividade. */
+.lesson-members{grid-column:1/-1;min-width:0;border-top:1px solid var(--line);padding-top:12px}
+.participants-details>summary{font-weight:600;cursor:pointer;padding:8px 0;color:var(--primary)}
+.lesson-participant{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--line)}
+.lesson-participant:last-child{border-bottom:0}.lesson-participant strong{display:block;margin-bottom:6px}.lesson-participant form{margin:0}
+.assignment-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:18px;align-items:stretch;margin-top:18px}
+.assignment-card{display:flex;flex-direction:column;color:var(--ink);text-decoration:none;padding:22px;margin:0;transition:border-color .15s,box-shadow .15s;max-width:none;min-width:0}
+.assignment-card:hover{border-color:#a390ef;box-shadow:0 6px 18px #5035b51a}.assignment-card:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
+.assignment-card h2{font-size:19px;margin:16px 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.assignment-top{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.assignment-counts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:14px 0;margin-top:auto;border-top:1px solid var(--line)}
+.assignment-counts span{font-size:11px;color:var(--muted)}.assignment-counts strong{display:block;color:var(--ink);font-size:20px}
+.card-open{font-weight:600;color:var(--primary);font-size:13px;padding-top:12px}.back-link{align-self:flex-start;margin-bottom:18px}
+.assignment-detail h2{font-size:24px;margin-bottom:6px;overflow-wrap:anywhere}.assignment-description{font-size:15px;line-height:1.7;overflow-wrap:anywhere}
+.delivery-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:#f0ecff;border-radius:14px;padding:18px;gap:18px;margin-bottom:22px}
+.delivery-summary strong{display:block;font-size:24px;color:var(--primary)}.delivery-summary span{font-size:13px;color:var(--muted)}
+.delivery-toolbar{display:flex;gap:20px;align-items:end;justify-content:space-between}.delivery-toolbar .tabs{margin:0;flex-wrap:wrap}.delivery-toolbar input{min-width:230px}
+.delivery-row{padding:18px 22px;margin-bottom:12px}.delivery-row .panel-head{margin-bottom:0;gap:16px}.delivery-person{display:flex;align-items:center;gap:12px}.delivery-person h3{margin:0 0 6px;font-size:16px}
+.response-details{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}.response-details>summary{cursor:pointer;color:var(--primary);font-weight:600}
+.correction-response{max-height:300px;overflow:auto}.corrected-answer{background:#edf9f2}.delivery-row .editor-launch{margin:0}.assignment-detail .editor-launch{margin:0}
+@media(max-width:760px){.lesson-participant{align-items:flex-start;flex-direction:column;gap:10px}.assignment-grid{grid-template-columns:1fr}.delivery-summary{grid-template-columns:1fr 1fr;gap:14px}.delivery-toolbar{align-items:stretch;flex-direction:column;gap:12px}.delivery-toolbar input{min-width:0}.delivery-row .panel-head{flex-wrap:wrap}.assignment-detail h2{font-size:21px}}

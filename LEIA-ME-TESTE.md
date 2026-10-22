@@ -1,42 +1,32 @@
-# Tutoring — versão para teste
+# Tutoring — versão 4.3 para teste local
 
-Este pacote contém o **Tutoring — Reforço e Acompanhamento Escolar, versão 4.1**. Foi compilado e verificado com 39 testes automatizados, 28 páginas por HTTP e testes de navegador nos três perfis, em desktop e celular. Veja `VERSAO-4.1.md` para novidades; para manter seus cadastros, siga `ATUALIZAR-CADASTROS.md`.
+Se já utiliza o aplicativo, comece por `ATUALIZAR-CADASTROS.md` para manter seus cadastros.
 
-## Começar
+## Iniciar pela primeira vez
 
-1. Instale o **SDK do .NET 10**, Windows x64: https://dotnet.microsoft.com/download/dotnet/10.0.
-2. Extraia este ZIP em uma **pasta nova**, por exemplo `Documentos\GITS\Tutoring-teste`. Não substitua a pasta original.
-3. Execute `Verificar-Tutoring.cmd`. Ele compila o projeto e executa os testes. Se falhar, envie `resultado-testes.txt` para revisão.
-4. Execute `Iniciar-Tutoring.cmd` e aguarde `Now listening on: http://localhost:5003`.
-5. Abra http://localhost:5003. Crie o primeiro administrador com nome, e-mail e senha de pelo menos 10 caracteres. Esse passo só funciona pelo próprio computador que executa o servidor.
-6. Entre com sua conta. Não há senhas de demonstração predefinidas.
+1. Extraia o ZIP.
+2. Instale o SDK .NET 10 se ainda não estiver instalado.
+3. Execute `Iniciar-Tutoring.cmd`.
+4. Aguarde a mensagem “Now listening on” e abra http://localhost:5003.
+5. Crie a conta única da professora, que também administra o sistema.
+6. Cadastre as matérias, os alunos e seus acessos. O horário é escolhido diretamente no agendamento.
 
-Encerre outra instância do app com Ctrl+C antes de iniciar a nova: ambas usam a porta 5003. A instalação inicial precisa de internet para baixar dependências; depois disso, o aplicativo pode funcionar localmente.
+Deixe o terminal aberto durante o uso. Para encerrar, pressione Ctrl+C.
 
-## Testar todos os perfis
+## Roteiro de teste
 
-Siga o roteiro de `VERSAO-4.1.md`. Cadastre matérias, professor e aluno; selecione matérias e dias pelas caixas de seleção. Defina professor inicial no cadastro ou vincule depois. Crie acessos selecionando nomes, sem informar IDs manualmente. Na agenda, escolha os horários disponíveis e use Remarcar na própria linha. Confira aluno/professor separadamente para validar permissões e entregas.
+- Cadastre um aluno sem escolher professora. Gere três mensalidades de R$ 250,50 com vencimento inicial em 31/01/2027: confira 31/01, 28/02, 31/03 e total R$ 751,50.
+- Cadastre outro aluno sem mensalidades e confira que não aparecem parcelas.
+- Selecione dois alunos da mesma matéria e agende uma aula em grupo. Confira o cartão único, os participantes e início/fim. Remarque o grupo e confira a nova data para ambos. Tente agendar outra no mesmo horário e verifique o bloqueio.
+- Publique uma atividade para dois alunos: confira um único cartão e abra a página de entregas. Envie a resposta como um aluno e corrija como professora; o outro aluno deve continuar pendente.
+- Entre como aluno: confira que não há agendamento nem remarcação. Apenas seus registros ficam disponíveis.
+- Envie documentos e imagens válidos de até 5 MB. Tente vídeo, vídeo renomeado ou arquivo maior e confira a recusa.
+- Na conta da professora, confira notas, progresso, materiais, atividades, mensalidades e backup.
 
-## Dados antigos e novos
+Para executar os testes automatizados, use `Verificar-Tutoring.cmd`.
 
-- O novo banco é `educamais.db`, na mesma pasta do banco original `sistema-pedagogico.db`.
-- A configuração original aponta para `..\Dados` a partir de `src\SistemaPedagogico.Web`: normalmente **`src\Dados`**. A localização pode mudar se você personalizou `Storage:DataDirectory` em `appsettings.json`.
-- Uma pasta extraída nova começa sem seus dados anteriores. Para testar a importação, com ambos os apps fechados, copie o banco antigo para a pasta de dados configurada na versão nova **antes da primeira execução**. Preserve uma cópia segura; se houver arquivos `-wal` e `-shm`, faça o backup pelo aplicativo antigo em vez de copiar um banco em uso.
-- Na primeira execução, o portal importa alunos, contato principal dos responsáveis, matérias, notas normalizadas para 0–10 e tarefas. Não cria contas automaticamente.
-- Alunos importados precisam receber matérias e vínculo com professor antes do agendamento.
-- Dificuldades, planos, sessões, observações, relatórios e agenda anteriores permanecem no banco original, acessíveis ao administrador pelo link **Histórico pedagógico anterior**.
-- A importação ocorre uma vez. Alterações no histórico anterior não sincronizam com o novo portal, nem o contrário. Use o portal novo para novos registros.
-- Arquivos enviados ficam em `Arquivos`, fora da pasta pública. A pasta `Chaves` guarda as chaves de sessão e não deve ser publicada.
-- Backup do novo portal inclui os dois bancos e os anexos. Ao restaurar sem `Chaves`, as sessões anteriores serão invalidadas; os usuários e senhas permanecem no banco.
+## Dados
 
-## Escopo e limitações
+SQLite local, normalmente em `src/Dados`. Não envie bancos, anexos ou chaves de sessão para o GitHub. O ZIP não contém dados ou senhas de demonstração. Faça backups regulares e guarde uma cópia fora do computador.
 
-O escopo e as limitações da versão 4.1 estão em `VERSAO-4.1.md`. O aplicativo funciona localmente com .NET 10 e SQLite. Não contém senhas fixas de demonstração. O banco novo e o histórico anterior continuam separados após a importação inicial. Para atualização com dados existentes, siga `ATUALIZAR-CADASTROS.md`.
-
-## Desenvolvimento
-
-`dotnet watch --project src\SistemaPedagogico.Web`
-
-Novos arquivos ficam em `Portal`, `Views/Portal`, `Views/Account`, `Views/Shared/_EducaLayout.cshtml`, `wwwroot/css/educamais.css` e `wwwroot/js/educamais.js`.
-
-O projeto anterior continua em `Pages`. As alterações manuais de aparência feitas no seu computador depois do ZIP original não estão neste pacote; o novo portal usa sua própria folha de estilos.
+A publicação online fica para a próxima etapa. Nada foi contratado ou publicado nesta versão.
