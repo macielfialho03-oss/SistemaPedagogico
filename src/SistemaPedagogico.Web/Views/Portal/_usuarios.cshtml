@@ -1,7 +1,22 @@
 @model PortalVm
-@{ViewData["PortalVm"]=Model;var newUser=new PortalUser();}
-<p class="help">Selecione um cadastro para preencher nome e e-mail. Cada aluno pode ter uma conta. Sua conta de professora reúne todas as funções de gestão.</p>
-<details id="novo-acesso" class="panel editor"><summary>＋ Criar acesso</summary><partial name="_UserForm" model="newUser" /></details>
-<div class="table-wrap"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Cadastro vinculado</th><th>Situação</th><th>Ações</th></tr></thead><tbody>@foreach(var x in Model.Users){<tr><td>@x.Name</td><td>@x.Email</td><td>@(x.Role=="Admin"?"Professora":"Aluno")</td><td>@(x.Role=="Aluno"?Model.StudentName(x.EntityId??0):x.Role=="Professor"?Model.TeacherName(x.EntityId):"Sua conta")</td><td>@(x.Active?"Ativo":"Inativo")</td><td><details><summary>Editar acesso</summary><partial name="_UserForm" model="x" /></details>
-<details><summary>Redefinir senha</summary><form action="/portal/salvar?kind=user-password" method="post" class="form-grid">@Html.AntiForgeryToken()<input name="Id" type="hidden" value="@x.Id"><label class="span2">Nova senha para @x.Name<input name="Password" type="password" required minlength="10" autocomplete="new-password"></label><button class="btn primary">Redefinir senha</button></form></details>
-@if(x.Role=="Aluno"){<form action="/portal/salvar?kind=user-status" method="post" data-confirm="@(x.Active?"Desativar o acesso de "+x.Name+"?":"Ativar o acesso de "+x.Name+"?")">@Html.AntiForgeryToken()<input name="Id" type="hidden" value="@x.Id"><input name="Active" type="hidden" value="@(!x.Active?"true":"false")"><button class="btn subtle">@(x.Active?"Desativar acesso":"Ativar acesso")</button></form>}</td></tr>}</tbody></table></div>
+@{ViewData["PortalVm"]=Model;var newUser=new PortalUser();var staff=Model.Users.Where(x=>x.Role!="Aluno").ToList();var students=Model.Users.Where(x=>x.Role=="Aluno").ToList();}
+<p class="help">Os acessos estão separados por tipo de usuário. A conta da professora reúne as funções de gestão; cada aluno vê somente os próprios registros.</p>
+<details id="novo-acesso" class="panel editor"><summary>＋ Criar acesso de aluno</summary><partial name="_UserForm" model="newUser" /></details>
+
+<div class="access-groups">
+<section class="access-group staff-access">
+<div class="access-heading"><div><span class="eyebrow">EQUIPE PEDAGÓGICA</span><h2>Professores e equipe</h2><p>Contas responsáveis pela administração e pelo acompanhamento pedagógico.</p></div><span class="access-count">@staff.Count conta@(staff.Count==1?"":"s")</span></div>
+<div class="table-wrap"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Cadastro vinculado</th><th>Situação</th><th>Ações</th></tr></thead><tbody>
+@foreach(var x in staff){<tr><td><span class="avatar">@PortalVm.Initials(x.Name)</span> @x.Name</td><td>@x.Email</td><td>@(x.Role=="Admin"?"Professora administradora":"Professor")</td><td>@(x.Role=="Professor"?Model.TeacherName(x.EntityId):"Conta principal")</td><td><span class="badge @(x.Active?"good":"bad")">@(x.Active?"Ativo":"Inativo")</span></td><td class="row-actions"><details><summary>Editar acesso</summary><partial name="_UserForm" model="x" /></details><details><summary>Redefinir senha</summary><form action="/portal/salvar?kind=user-password" method="post" class="form-grid">@Html.AntiForgeryToken()<input name="Id" type="hidden" value="@x.Id"><label class="span2">Nova senha para @x.Name<input name="Password" type="password" required minlength="10" autocomplete="new-password"></label><button class="btn primary">Redefinir senha</button></form></details></td></tr>}
+@if(staff.Count==0){<tr><td colspan="6" class="empty">Nenhuma conta de professora ou equipe cadastrada.</td></tr>}
+</tbody></table></div>
+</section>
+
+<section class="access-group student-access">
+<div class="access-heading"><div><span class="eyebrow">ACESSO INDIVIDUAL</span><h2>Alunos</h2><p>Cada aluno acessa apenas suas aulas, notas, atividades e evolução.</p></div><span class="access-count">@students.Count conta@(students.Count==1?"":"s")</span></div>
+<div class="table-wrap"><table><thead><tr><th>Aluno</th><th>E-mail</th><th>Cadastro vinculado</th><th>Situação</th><th>Ações</th></tr></thead><tbody>
+@foreach(var x in students){<tr><td><span class="avatar">@PortalVm.Initials(x.Name)</span> @x.Name</td><td>@x.Email</td><td>@Model.StudentName(x.EntityId??0)</td><td><span class="badge @(x.Active?"good":"bad")">@(x.Active?"Ativo":"Inativo")</span></td><td class="row-actions"><details><summary>Editar acesso</summary><partial name="_UserForm" model="x" /></details><details><summary>Redefinir senha</summary><form action="/portal/salvar?kind=user-password" method="post" class="form-grid">@Html.AntiForgeryToken()<input name="Id" type="hidden" value="@x.Id"><label class="span2">Nova senha para @x.Name<input name="Password" type="password" required minlength="10" autocomplete="new-password"></label><button class="btn primary">Redefinir senha</button></form></details><form action="/portal/salvar?kind=user-status" method="post" data-confirm="@(x.Active?"Desativar o acesso de "+x.Name+"?":"Ativar o acesso de "+x.Name+"?")">@Html.AntiForgeryToken()<input name="Id" type="hidden" value="@x.Id"><input name="Active" type="hidden" value="@(!x.Active?"true":"false")"><button class="btn subtle">@(x.Active?"Desativar acesso":"Ativar acesso")</button></form></td></tr>}
+@if(students.Count==0){<tr><td colspan="5" class="empty">Nenhum aluno possui acesso ainda. Use “Criar acesso de aluno” para começar.</td></tr>}
+</tbody></table></div>
+</section>
+</div>

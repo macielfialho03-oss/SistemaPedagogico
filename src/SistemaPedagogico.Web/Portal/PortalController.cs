@@ -118,21 +118,24 @@ public class PortalController(EducaDb db,StoragePaths paths):Controller {
  if(recipients.Length==0||recipients.Length>200)throw new ArgumentException("Selecione de 1 a 200 alunos para a aula.");
  var sub=N(f,"SubjectId");foreach(var sid in recipients)await Compatible(sid,sub);
  var tid=await SingleTeacher.ProfileIdAsync(db);
- var start=T(f,"Start");var min=N(f,"Minutes");if(min<15||min>240||start<=DateTime.Now)throw new ArgumentException("Escolha um horário futuro e duração entre 15 e 240 minutos.");var end=start.AddMinutes(min);
- var excluded=group.Select(x=>x.Id).ToList();var conflicts=await db.Lessons.Where(x=>!excluded.Contains(x.Id)&&x.Status!="Cancelada"&&x.Start<end).ToListAsync();
- if(conflicts.Any(x=>x.Start.AddMinutes(x.Minutes)>start))throw new ArgumentException("Há conflito com outra aula. Escolha outro horário.");
+ var start=T(f,"Start");var min=N(f,"Minutes");if(min<15||min>240||start<=DateTime.Now)throw new ArgumentException("Escolha um horário futuro e duração entre 15 e 240 minutos.");
+ var repeatCount=old==null?Math.Max(1,N(f,"RepeatCount")):1;if(repeatCount>52)throw new ArgumentException("Agende no máximo 52 aulas semanais de uma vez.");
+ var starts=Enumerable.Range(0,repeatCount).Select(week=>start.AddDays(week*7)).ToList();
+ var excluded=group.Select(x=>x.Id).ToList();var lastEnd=starts[^1].AddMinutes(min);var conflicts=await db.Lessons.Where(x=>!excluded.Contains(x.Id)&&x.Status!="Cancelada"&&x.Start<lastEnd).ToListAsync();
+ var conflictDate=starts.FirstOrDefault(date=>conflicts.Any(x=>x.Start<date.AddMinutes(min)&&x.Start.AddMinutes(x.Minutes)>date));
+ if(conflictDate!=default)throw new ArgumentException($"Há conflito com outra aula em {conflictDate:dd/MM/yyyy 'às' HH:mm}. Escolha outro horário ou reduza as repetições.");
  var mode=Choice(f,"Mode","Presencial","Online");var notes=F(f,"Notes",1000);var url=F(f,"OnlineUrl",500);if(url!=""&&(!Uri.TryCreate(url,UriKind.Absolute,out var uri)||!(uri.Scheme=="https"||uri.Scheme=="http")))throw new ArgumentException("Informe um link de aula válido, começando com https://.");
- var key=old?.GroupKey is {Length:>0}?old.GroupKey:Guid.NewGuid().ToString("N");
- if(old==null){group=recipients.Select(sid=>new Lesson{StudentId=sid}).ToList();db.Lessons.AddRange(group);}
- foreach(var x in group){x.GroupKey=key;x.TeacherId=tid;x.SubjectId=sub;x.Start=start;x.Minutes=min;x.Mode=mode;x.Notes=notes;x.OnlineUrl=mode=="Online"?url:"";}
+ if(old==null){
+  foreach(var occurrence in starts){var key=Guid.NewGuid().ToString("N");var rows=recipients.Select(sid=>new Lesson{StudentId=sid,GroupKey=key,TeacherId=tid,SubjectId=sub,Start=occurrence,Minutes=min,Mode=mode,Notes=notes,OnlineUrl=mode=="Online"?url:""}).ToList();db.Lessons.AddRange(rows);}
+ }else{var key=old.GroupKey is {Length:>0}?old.GroupKey:Guid.NewGuid().ToString("N");foreach(var x in group){x.GroupKey=key;x.TeacherId=tid;x.SubjectId=sub;x.Start=start;x.Minutes=min;x.Mode=mode;x.Notes=notes;x.OnlineUrl=mode=="Online"?url:"";}}
  break;}
  case "lesson-group-cancel":{
  var lesson=await db.Lessons.FindAsync(id)??throw new ArgumentException("Aula não encontrada.");
  var group=lesson.GroupKey==""?new List<Lesson>{lesson}:await db.Lessons.Where(x=>x.GroupKey==lesson.GroupKey).ToListAsync();
- foreach(var row in group.Where(x=>x.Status=="Agendada"))row.Status="Cancelada";
+ var reason=Required(f,"CancellationReason",500);foreach(var row in group.Where(x=>x.Status=="Agendada")){row.Status="Cancelada";row.CancellationReason=reason;}
  break;}
  case "lesson-status":{
- var x=await db.Lessons.FindAsync(id)??throw new ArgumentException("Aula não encontrada.");await DemandStudent(x.StudentId);if(Role=="Professor"&&x.TeacherId!=Entity)return Forbid();var status=Choice(f,"Status","Cancelada","Concluída");if(x.Status!="Agendada")throw new ArgumentException("Aula já encerrada.");if(Role=="Aluno"&&(status!="Cancelada"||x.Start<=DateTime.Now))return Forbid();if(status=="Concluída"&&x.Start>DateTime.Now)throw new ArgumentException("A aula ainda não começou.");x.Status=status;if(status=="Concluída")x.Attendance=Choice(f,"Attendance","Presente","Falta");break;}
+ var x=await db.Lessons.FindAsync(id)??throw new ArgumentException("Aula não encontrada.");await DemandStudent(x.StudentId);if(Role=="Professor"&&x.TeacherId!=Entity)return Forbid();var status=Choice(f,"Status","Cancelada","Concluída");if(x.Status!="Agendada")throw new ArgumentException("Aula já encerrada.");if(Role=="Aluno"&&(status!="Cancelada"||x.Start<=DateTime.Now))return Forbid();if(status=="Concluída"&&x.Start>DateTime.Now)throw new ArgumentException("A aula ainda não começou.");var reason=status=="Cancelada"?Required(f,"CancellationReason",500):"";x.Status=status;if(status=="Concluída"){x.Attendance=Choice(f,"Attendance","Presente","Falta");x.CancellationReason="";}else x.CancellationReason=reason;break;}
  case "delete-grade":{
  var x=await db.Grades.FindAsync(id)??throw new ArgumentException("Nota não encontrada.");if(Role=="Professor"&&x.TeacherId!=Entity)return Forbid();if(!await CanStudent(x.StudentId))return Forbid();if(F(f,"ConfirmDelete")!="true")throw new ArgumentException("Confirme a exclusão da nota.");db.Grades.Remove(x);break;}
  case "grade":{

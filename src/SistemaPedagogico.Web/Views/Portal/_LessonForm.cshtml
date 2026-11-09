@@ -3,7 +3,7 @@
 <form action="/portal/salvar?kind=lesson" method="post" class="form-grid" data-lesson>@Html.AntiForgeryToken()
 <input type="hidden" name="Id" value="@Model.Id">
 @if(Model.Id==0){
-<fieldset class="choice-field span2"><legend>1. Participantes</legend><small data-recipient-count>0 alunos selecionados</small><input type="search" data-choice-search placeholder="Buscar aluno pelo nome" aria-label="Buscar participante"><div class="choice-options">
+<fieldset class="choice-field span2"><legend>1. Participantes — aula individual ou em grupo</legend><small data-recipient-count>0 alunos selecionados</small><input type="search" data-choice-search placeholder="Buscar aluno pelo nome" aria-label="Buscar participante"><div class="choice-options">
 @foreach(var p in vm.Students.Where(x=>x.Active)){<label class="choice-option"><input type="checkbox" name="StudentIds" value="@p.Id">@p.Name</label>}
 </div><p class="help">Marque um aluno para atendimento individual ou vários para uma aula em grupo. A matéria precisa estar no cadastro de todos os selecionados.</p></fieldset>
 }else{<div class="span2 answer"><strong>Participantes desta aula</strong><p>@string.Join(", ",participants.Select(x=>vm.StudentName(x.StudentId)))</p><small>A remarcação vale para todo o grupo. Participações canceladas não serão reativadas.</small></div>@foreach(var row in participants.Where(x=>x.Status=="Agendada")){<input name="StudentIds" type="hidden" value="@row.StudentId">}}
@@ -12,6 +12,7 @@
 <label>Duração<select name="Minutes" data-current="@Model.Minutes" required><option value="30">30 minutos</option><option value="60">1 hora</option><option value="90">1 hora e meia</option><option value="120">2 horas</option></select></label>
 <label>Dia da aula<input name="LessonDate" type="date" min="@DateTime.Today.ToString("yyyy-MM-dd")" value="@(Model.Id==0?"":Model.Start.ToString("yyyy-MM-dd"))" required></label>
 <label>Hora de início<input name="LessonTime" type="time" value="@(Model.Id==0?"":Model.Start.ToString("HH:mm"))" required><small data-slots-note>Escolha a hora. O sistema verifica conflitos ao salvar.</small></label>
+@if(Model.Id==0){<label class="span2">Agendamento automático semanal<input name="RepeatCount" type="number" min="1" max="52" value="1" required><small>Use 1 para uma única aula. Para repetir toda semana, informe a quantidade total de aulas (até 52).</small></label>}
 <input type="hidden" name="Start" value="@(Model.Id==0?"":Model.Start.ToString("yyyy-MM-ddTHH:mm"))">
 <label>Modalidade<select name="Mode" data-current="@Model.Mode" required><option>Presencial</option><option>Online</option></select></label>
 <label data-online>Link da aula<input name="OnlineUrl" type="url" value="@Model.OnlineUrl" placeholder="https://..."></label>

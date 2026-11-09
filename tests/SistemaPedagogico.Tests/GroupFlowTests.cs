@@ -5,7 +5,7 @@ namespace SistemaPedagogico.Tests;
 
 public partial class PortalTests
 {
-    Microsoft.AspNetCore.Http.FormCollection GroupLesson(string ids="1,2", string id="0", DateTime? start=null) => Form(("Id",id),("StudentIds",ids),("SubjectId","1"),("Start",(start??DateTime.Today.AddDays(3).AddHours(10)).ToString("yyyy-MM-ddTHH:mm")),("Minutes","60"),("Mode","Presencial"));
+    Microsoft.AspNetCore.Http.FormCollection GroupLesson(string ids="1,2", string id="0", DateTime? start=null, string repeat="1") => Form(("Id",id),("StudentIds",ids),("SubjectId","1"),("Start",(start??DateTime.Today.AddDays(3).AddHours(10)).ToString("yyyy-MM-ddTHH:mm")),("Minutes","60"),("Mode","Presencial"),("RepeatCount",repeat));
     Microsoft.AspNetCore.Http.FormCollection GroupActivity(string id="0", string title="Leitura em grupo") => Form(("Id",id),("StudentIds","1,2"),("SubjectId","1"),("Title",title),("Description","Leia e responda."),("Due",DateTime.Today.AddDays(7).ToString("yyyy-MM-dd")));
 
     [Fact] public async Task Aula_em_grupo_cria_participacoes_sem_conflitar_entre_si()
@@ -30,7 +30,7 @@ public partial class PortalTests
     [Fact] public async Task Remarcar_grupo_atualiza_todos_e_preserva_cancelamento_individual()
     {
         await Controller("Admin",0).Save("lesson",GroupLesson(),null);var rows=await db.Lessons.OrderBy(x=>x.StudentId).ToListAsync();
-        await Controller("Aluno",2).Save("lesson-status",Form(("Id",rows[1].Id.ToString()),("Status","Cancelada")),null);
+        await Controller("Aluno",2).Save("lesson-status",Form(("Id",rows[1].Id.ToString()),("Status","Cancelada"),("CancellationReason","Compromisso familiar")),null);
         var start=DateTime.Today.AddDays(4).AddHours(11);var c=Controller("Admin",0);await c.Save("lesson",GroupLesson("1",rows[0].Id.ToString(),start),null);Assert.Null(c.TempData["Error"]);
         Assert.All(await db.Lessons.ToListAsync(),x=>Assert.Equal(start,x.Start));Assert.Equal("Cancelada",rows[1].Status);Assert.Equal("Agendada",rows[0].Status);
     }
@@ -49,7 +49,20 @@ public partial class PortalTests
     }
     [Fact] public async Task Cancelar_grupo_cancela_apenas_participacoes_agendadas()
     {
-        await Controller("Admin",0).Save("lesson",GroupLesson(),null);var rows=await db.Lessons.ToListAsync();await Controller("Admin",0).Save("lesson-group-cancel",Form(("Id",rows[0].Id.ToString())),null);Assert.All(rows,x=>Assert.Equal("Cancelada",x.Status));
+        await Controller("Admin",0).Save("lesson",GroupLesson(),null);var rows=await db.Lessons.ToListAsync();await Controller("Admin",0).Save("lesson-group-cancel",Form(("Id",rows[0].Id.ToString()),("CancellationReason","Feriado municipal")),null);Assert.All(rows,x=>Assert.Equal("Cancelada",x.Status));Assert.All(rows,x=>Assert.Equal("Feriado municipal",x.CancellationReason));
+    }
+    [Fact] public async Task Agendamento_automatico_cria_aulas_semanais_para_todo_o_grupo()
+    {
+        var start=DateTime.Today.AddDays(3).AddHours(10);var c=Controller("Admin",0);await c.Save("lesson",GroupLesson(start:start,repeat:"3"),null);Assert.Null(c.TempData["Error"]);
+        var rows=await db.Lessons.OrderBy(x=>x.Start).ThenBy(x=>x.StudentId).ToListAsync();Assert.Equal(6,rows.Count);Assert.Equal(3,rows.Select(x=>x.GroupKey).Distinct().Count());Assert.Equal(new[]{start,start.AddDays(7),start.AddDays(14)},rows.Select(x=>x.Start).Distinct().ToArray());
+    }
+    [Fact] public async Task Conflito_em_repeticao_futura_impede_toda_a_serie()
+    {
+        var start=DateTime.Today.AddDays(3).AddHours(10);db.Lessons.Add(new Lesson{StudentId=1,Start=start.AddDays(7),Minutes=60});await db.SaveChangesAsync();var c=Controller("Admin",0);await c.Save("lesson",GroupLesson(start:start,repeat:"3"),null);Assert.Contains("conflito",c.TempData["Error"]?.ToString());db.ChangeTracker.Clear();Assert.Single(await db.Lessons.ToListAsync());
+    }
+    [Fact] public async Task Cancelamento_exige_justificativa_e_preserva_a_aula_sem_ela()
+    {
+        await Controller("Admin",0).Save("lesson",GroupLesson(),null);var row=await db.Lessons.FirstAsync();var c=Controller("Admin",0);await c.Save("lesson-group-cancel",Form(("Id",row.Id.ToString())),null);Assert.NotNull(c.TempData["Error"]);db.ChangeTracker.Clear();Assert.All(await db.Lessons.ToListAsync(),x=>Assert.Equal("Agendada",x.Status));
     }
     [Fact] public async Task Atividade_em_grupo_tem_um_identificador_e_entregas_isoladas()
     {
