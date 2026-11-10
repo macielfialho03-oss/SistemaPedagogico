@@ -5,13 +5,14 @@ using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Primitives;
+using Microsoft.Extensions.Configuration;
 using SistemaPedagogico.Infrastructure.Storage;
 using SistemaPedagogico.Web.Portal;
 namespace SistemaPedagogico.Tests;
 public partial class PortalTests : IDisposable {
  readonly SqliteConnection connection=new("Data Source=:memory:");readonly EducaDb db;readonly string directory;
  public PortalTests(){connection.Open();db=new EducaDb(new DbContextOptionsBuilder<EducaDb>().UseSqlite(connection).Options);db.Database.EnsureCreated();directory=Path.Combine(Path.GetTempPath(),Guid.NewGuid().ToString("N"));Directory.CreateDirectory(directory);db.Students.AddRange(new Student{Id=1,Name="Aluno A",SubjectIds="1"},new Student{Id=2,Name="Aluno B",SubjectIds="1"});db.Teachers.Add(new Teacher{Id=1,Name="Professor",SubjectIds="1",Days="1,2,3,4,5,6,7",StartHour=0,EndHour=24});db.Subjects.Add(new Subject{Id=1,Name="Matemática"});db.Enrollments.Add(new Enrollment{StudentId=1,TeacherId=1});db.Settings.Add(new PortalSetting{Key=SingleTeacher.TeacherKey,Value="1"});db.SaveChanges();}
- PortalController Controller(string role,int entity){var http=new DefaultHttpContext();http.User=new ClaimsPrincipal(new ClaimsIdentity(new[]{new Claim(ClaimTypes.Role,role),new Claim(ClaimTypes.NameIdentifier,"99"),new Claim("entity",entity.ToString())},"Test"));var c=new PortalController(db,new StoragePaths{DataDirectory=directory}){ControllerContext=new ControllerContext{HttpContext=http}};c.TempData=new TempDataDictionary(http,new TestTempData());return c;}
+ PortalController Controller(string role,int entity){var http=new DefaultHttpContext();http.User=new ClaimsPrincipal(new ClaimsIdentity(new[]{new Claim(ClaimTypes.Role,role),new Claim(ClaimTypes.NameIdentifier,"99"),new Claim("entity",entity.ToString())},"Test"));var paths=new StoragePaths{DataDirectory=directory};var c=new PortalController(db,paths,new LocalAttachmentStorage(paths),new ConfigurationBuilder().Build()){ControllerContext=new ControllerContext{HttpContext=http}};c.TempData=new TempDataDictionary(http,new TestTempData());return c;}
  static FormCollection Form(params (string key,string value)[] entries)=>new(entries.ToDictionary(x=>x.key,x=>new StringValues(x.value)));
  [Fact] public async Task Aluno_nao_acessa_financeiro(){Assert.IsType<ForbidResult>(await Controller("Aluno",1).Index("mensalidades"));}
  [Fact] public async Task Aluno_so_recebe_seus_registros(){var result=Assert.IsType<ViewResult>(await Controller("Aluno",1).Index());var model=Assert.IsType<PortalVm>(result.Model);Assert.Single(model.Students);Assert.Equal(1,model.Students[0].Id);}

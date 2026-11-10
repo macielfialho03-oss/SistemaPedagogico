@@ -5,9 +5,9 @@ namespace SistemaPedagogico.Web.Portal;
 
 public static class AttachmentRules
 {
-    public const int MaxBytes = 5 * 1024 * 1024;
+    public const int MaxBytes = 4 * 1024 * 1024;
     public const string Accept = ".pdf,.docx,.xlsx,.pptx,.txt,.png,.jpg,.jpeg";
-    public const string Help = "PDF, DOCX, XLSX, PPTX, TXT, JPG ou PNG. Até 5 MB por arquivo. Vídeos não são aceitos.";
+    public const string Help = "PDF, DOCX, XLSX, PPTX, TXT, JPG ou PNG. Até 4 MB por arquivo. Vídeos não são aceitos.";
 
     public static async Task<byte[]> ReadAsync(IFormFile file)
     {

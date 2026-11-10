@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.12" />
     <ProjectReference Include="..\SistemaPedagogico.Core\SistemaPedagogico.Core.csproj" />
     <ProjectReference Include="..\SistemaPedagogico.Infrastructure\SistemaPedagogico.Infrastructure.csproj" />
   </ItemGroup>

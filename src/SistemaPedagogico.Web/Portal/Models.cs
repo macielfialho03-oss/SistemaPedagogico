@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 namespace SistemaPedagogico.Web.Portal;
 
 public class Student {
@@ -26,9 +27,14 @@ public class Material { public int Id {get;set;} public int StudentId {get;set;}
 public class Payment { public string History {get;set;}="";  public int Id {get;set;} public int StudentId {get;set;} public decimal Amount {get;set;} public DateTime Due {get;set;}=DateTime.Today; public DateTime? Paid {get;set;} public string Method {get;set;}="PIX"; public string Notes {get;set;}=""; }
 public class Progress { public string InternalNotes {get;set;}=""; public int? LessonId {get;set;}  public int Id {get;set;} public int StudentId {get;set;} public int TeacherId {get;set;} public string Text {get;set;}=""; public string ServiceType {get;set;}="Reforço escolar"; public int? SubjectId {get;set;} public string Difficulty {get;set;}=""; public string Goal {get;set;}=""; public string Worked {get;set;}=""; public string Evolution {get;set;}=""; public string NextSteps {get;set;}=""; public string Tasks {get;set;}=""; public string Autonomy {get;set;}=""; public DateTime Date {get;set;}=DateTime.Today; }
 public class PortalSetting { public int Id {get;set;} public string Key {get;set;}=""; public string Value {get;set;}=""; }
-public class EducaDb(DbContextOptions<EducaDb> options):DbContext(options) {
+public class LoginAttempt { public int Id {get;set;} public string Key {get;set;}=""; public int Failures {get;set;} public DateTime LockedUntil {get;set;}=DateTime.MinValue; }
+public class EducaDb(DbContextOptions<EducaDb> options):DbContext(options),IDataProtectionKeyContext {
+ public DbSet<DataProtectionKey> DataProtectionKeys=>Set<DataProtectionKey>(); public DbSet<LoginAttempt> LoginAttempts=>Set<LoginAttempt>();
  public DbSet<Student> Students=>Set<Student>(); public DbSet<Teacher> Teachers=>Set<Teacher>(); public DbSet<Subject> Subjects=>Set<Subject>(); public DbSet<Enrollment> Enrollments=>Set<Enrollment>(); public DbSet<PortalUser> Users=>Set<PortalUser>(); public DbSet<Lesson> Lessons=>Set<Lesson>(); public DbSet<Grade> Grades=>Set<Grade>(); public DbSet<Activity> Activities=>Set<Activity>(); public DbSet<Material> Materials=>Set<Material>(); public DbSet<Payment> Payments=>Set<Payment>(); public DbSet<Progress> Progress=>Set<Progress>(); public DbSet<PortalSetting> Settings=>Set<PortalSetting>();
- protected override void OnModelCreating(ModelBuilder m) { m.Entity<Payment>().Property(x=>x.Amount).HasConversion(v=>decimal.ToInt64(v*100),v=>v/100m); m.Entity<PortalUser>().HasIndex(x=>x.Email).IsUnique(); m.Entity<Enrollment>().HasIndex(x=>new{x.StudentId,x.TeacherId}).IsUnique(); m.Entity<Lesson>().HasIndex(x=>x.Start); m.Entity<PortalSetting>().HasIndex(x=>x.Key).IsUnique(); }
+ protected override void OnModelCreating(ModelBuilder m) { m.Entity<Payment>().Property(x=>x.Amount).HasConversion(v=>decimal.ToInt64(v*100),v=>v/100m); m.Entity<PortalUser>().HasIndex(x=>x.Email).IsUnique(); m.Entity<Enrollment>().HasIndex(x=>new{x.StudentId,x.TeacherId}).IsUnique(); m.Entity<Lesson>().HasIndex(x=>x.Start); m.Entity<PortalSetting>().HasIndex(x=>x.Key).IsUnique(); m.Entity<LoginAttempt>().HasIndex(x=>x.Key).IsUnique();
+  // Timetables and due dates are local civil times, not instants in UTC.
+  if(Database.IsNpgsql()){m.HasDefaultSchema("tutoring");foreach(var entity in m.Model.GetEntityTypes())foreach(var property in entity.GetProperties())if(property.ClrType==typeof(DateTime)||property.ClrType==typeof(DateTime?))property.SetColumnType("timestamp without time zone");}
+ }
 }
 public class PortalVm {
  public int? SelectedActivity {get;set;} public int OwnerTeacherId {get;set;} public int? SelectedStudent {get;set;} public string LastBackup {get;set;}=""; public string Section {get;set;}="painel"; public string Role {get;set;}=""; public int Entity {get;set;} public string Query {get;set;}="";

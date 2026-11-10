@@ -3,9 +3,10 @@
 <form action="/portal/salvar?kind=lesson" method="post" class="form-grid" data-lesson>@Html.AntiForgeryToken()
 <input type="hidden" name="Id" value="@Model.Id">
 @if(Model.Id==0){
-<fieldset class="choice-field span2"><legend>1. Participantes — aula individual ou em grupo</legend><small data-recipient-count>0 alunos selecionados</small><input type="search" data-choice-search placeholder="Buscar aluno pelo nome" aria-label="Buscar participante"><div class="choice-options">
+<fieldset class="span2 choice-field"><legend>1. Quem participa?</legend><label class="choice-option"><input type="radio" name="RecipientMode" value="subject" checked> Todos os alunos ativos da matéria</label><label class="choice-option"><input type="radio" name="RecipientMode" value="manual"> Selecionar alunos manualmente</label><p class="help">Os alunos da matéria serão incluídos quando você salvar. Cadastros feitos depois não entram nas aulas já agendadas.</p></fieldset>
+<fieldset class="choice-field span2" data-manual-recipients hidden><legend>Alunos selecionados</legend><small data-recipient-count>0 alunos selecionados</small><input type="search" data-choice-search placeholder="Buscar aluno pelo nome" aria-label="Buscar participante"><div class="choice-options">
 @foreach(var p in vm.Students.Where(x=>x.Active)){<label class="choice-option"><input type="checkbox" name="StudentIds" value="@p.Id">@p.Name</label>}
-</div><p class="help">Marque um aluno para atendimento individual ou vários para uma aula em grupo. A matéria precisa estar no cadastro de todos os selecionados.</p></fieldset>
+</div><p class="help">No modo manual, marque um ou vários alunos que estudam a matéria escolhida.</p></fieldset>
 }else{<div class="span2 answer"><strong>Participantes desta aula</strong><p>@string.Join(", ",participants.Select(x=>vm.StudentName(x.StudentId)))</p><small>A remarcação vale para todo o grupo. Participações canceladas não serão reativadas.</small></div>@foreach(var row in participants.Where(x=>x.Status=="Agendada")){<input name="StudentIds" type="hidden" value="@row.StudentId">}}
 <h3 class="span2 form-section">@(Model.Id==0?"2. Data e horário":"Novo horário")</h3>
 <label>Matéria<select name="SubjectId" data-current="@(Model.SubjectId==0?"":Model.SubjectId.ToString())" required><option value="">Selecione...</option>@foreach(var p in vm.Subjects.Where(x=>x.Active)){<option value="@p.Id">@p.Name</option>}</select></label>
