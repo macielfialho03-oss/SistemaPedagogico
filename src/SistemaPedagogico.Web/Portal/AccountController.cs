@@ -6,24 +6,36 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
 namespace SistemaPedagogico.Web.Portal;
 public class LoginInput { [Required,EmailAddress,MaxLength(150)] public string Email {get;set;}=""; [Required,MaxLength(256)] public string Password {get;set;}=""; [MaxLength(120)] public string Name {get;set;}=""; public bool AdoptAccount {get;set;} }
 [Route("conta")]
-public class AccountController(EducaDb db):Controller {
+public class AccountController(EducaDb db,IConfiguration config):Controller {
  [AllowAnonymous,HttpGet("entrar")] public async Task<IActionResult> Login(){ViewBag.Setup=!await db.Users.AnyAsync();ViewBag.Migrate=!await db.Settings.AnyAsync(x=>x.Key==SingleTeacher.OwnerKey);return View("Login",new LoginInput());}
  [AllowAnonymous,HttpPost("entrar"),ValidateAntiForgeryToken] public async Task<IActionResult> Login(LoginInput input){
  ViewBag.Setup=!await db.Users.AnyAsync();ViewBag.Migrate=!await db.Settings.AnyAsync(x=>x.Key==SingleTeacher.OwnerKey);
  if(!ModelState.IsValid)return View("Login",input);
  if(ViewBag.Setup==true){ModelState.AddModelError("","Crie a conta da professora primeiro.");return View("Login",input);}
- var key=input.Email.Trim().ToLowerInvariant();var u=await db.Users.SingleOrDefaultAsync(x=>x.Email==key&&x.Active);
- if(u==null||new PasswordHasher<PortalUser>().VerifyHashedPassword(u,u.PasswordHash,input.Password)==PasswordVerificationResult.Failed){await Task.Delay(600);ModelState.AddModelError("","E-mail ou senha inválidos.");return View("Login",input);}
+ var key=input.Email.Trim().ToLowerInvariant();var hash=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key)));
+ var attempt=await db.LoginAttempts.SingleOrDefaultAsync(x=>x.Key==hash);
+ var now=DateTime.SpecifyKind(DateTime.UtcNow,DateTimeKind.Unspecified);
+ if(attempt?.LockedUntil>now){ModelState.AddModelError("","Muitas tentativas. Aguarde 15 minutos antes de entrar novamente.");return View("Login",input);}
+ var u=await db.Users.SingleOrDefaultAsync(x=>x.Email==key&&x.Active);
+ if(u==null||new PasswordHasher<PortalUser>().VerifyHashedPassword(u,u.PasswordHash,input.Password)==PasswordVerificationResult.Failed){
+  attempt??=new LoginAttempt{Key=hash};if(attempt.Id==0)db.LoginAttempts.Add(attempt);
+  attempt.Failures++;if(attempt.Failures>=5){attempt.LockedUntil=now.AddMinutes(15);attempt.Failures=0;}
+  await db.SaveChangesAsync();ModelState.AddModelError("","E-mail ou senha inválidos.");return View("Login",input);
+ }
  if(u.Role is "Admin" or "Professor"){
  if(ViewBag.Migrate==true&&!input.AdoptAccount){ModelState.AddModelError("","Confirme que esta será a conta única da professora.");return View("Login",input);}
  if(!await SingleTeacher.AdoptAsync(db,u)){ModelState.AddModelError("","Use a conta única da professora escolhida na atualização.");return View("Login",input);}
  }
+ if(attempt!=null){db.LoginAttempts.Remove(attempt);await db.SaveChangesAsync();}
  await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,new ClaimsPrincipal(new ClaimsIdentity(new[]{new Claim(ClaimTypes.NameIdentifier,u.Id.ToString()),new Claim(ClaimTypes.Name,u.Name),new Claim(ClaimTypes.Role,u.Role),new Claim("entity",u.EntityId?.ToString()??""),new Claim("stamp",u.Stamp)},CookieAuthenticationDefaults.AuthenticationScheme)),new AuthenticationProperties{IsPersistent=false});return Redirect("/portal");
  }
  [AllowAnonymous,HttpPost("configurar"),ValidateAntiForgeryToken] public async Task<IActionResult> Setup(LoginInput input){
+ if(!string.IsNullOrWhiteSpace(config["DATABASE_URL"]))return Forbid();
  ViewBag.Setup=true;
  if(await db.Users.AnyAsync())return Forbid();
  if(HttpContext.Connection.RemoteIpAddress is not {} ip||!System.Net.IPAddress.IsLoopback(ip)){ModelState.AddModelError("","O primeiro administrador deve ser criado no computador que executa o sistema.");return View("Login",input);}

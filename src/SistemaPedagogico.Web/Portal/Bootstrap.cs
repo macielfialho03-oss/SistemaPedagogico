@@ -5,6 +5,9 @@ namespace SistemaPedagogico.Web.Portal;
 public static class PortalBootstrap {
  public static async Task ImportAsync(EducaDb db,SistemaPedagogicoDbContext old) {
  await db.Database.EnsureCreatedAsync();
+ // Existing local databases predate login throttling. Keep their records intact.
+ await db.Database.ExecuteSqlRawAsync("CREATE TABLE IF NOT EXISTS LoginAttempts (Id INTEGER NOT NULL CONSTRAINT PK_LoginAttempts PRIMARY KEY AUTOINCREMENT, \"Key\" TEXT NOT NULL, Failures INTEGER NOT NULL, LockedUntil TEXT NOT NULL)");
+ await db.Database.ExecuteSqlRawAsync("CREATE UNIQUE INDEX IF NOT EXISTS IX_LoginAttempts_Key ON LoginAttempts (\"Key\")");
  // Existing SQLite databases need the new column before EF queries students.
  await db.Database.OpenConnectionAsync();
  try {

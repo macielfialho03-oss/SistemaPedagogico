@@ -8,3 +8,6 @@
 *.db-shm
 resultado-testes.txt
 .vs/
+
+__pycache__/
+*.pyc

@@ -56,6 +56,13 @@ public partial class PortalTests
         var start=DateTime.Today.AddDays(3).AddHours(10);var c=Controller("Admin",0);await c.Save("lesson",GroupLesson(start:start,repeat:"3"),null);Assert.Null(c.TempData["Error"]);
         var rows=await db.Lessons.OrderBy(x=>x.Start).ThenBy(x=>x.StudentId).ToListAsync();Assert.Equal(6,rows.Count);Assert.Equal(3,rows.Select(x=>x.GroupKey).Distinct().Count());Assert.Equal(new[]{start,start.AddDays(7),start.AddDays(14)},rows.Select(x=>x.Start).Distinct().ToArray());
     }
+    [Fact] public async Task Aula_da_materia_inclui_todos_os_alunos_ativos_sem_selecao_manual()
+    {
+        var inactive=await db.Students.FindAsync(2);inactive!.Active=false;await db.SaveChangesAsync();
+        var form=Form(("Id","0"),("RecipientMode","subject"),("SubjectId","1"),("Start",DateTime.Today.AddDays(3).AddHours(10).ToString("yyyy-MM-ddTHH:mm")),("Minutes","60"),("Mode","Presencial"),("RepeatCount","2"));
+        var c=Controller("Admin",0);await c.Save("lesson",form,null);
+        Assert.Null(c.TempData["Error"]);var rows=await db.Lessons.ToListAsync();Assert.Equal(2,rows.Count);Assert.All(rows,x=>Assert.Equal(1,x.StudentId));
+    }
     [Fact] public async Task Conflito_em_repeticao_futura_impede_toda_a_serie()
     {
         var start=DateTime.Today.AddDays(3).AddHours(10);db.Lessons.Add(new Lesson{StudentId=1,Start=start.AddDays(7),Minutes=60});await db.SaveChangesAsync();var c=Controller("Admin",0);await c.Save("lesson",GroupLesson(start:start,repeat:"3"),null);Assert.Contains("conflito",c.TempData["Error"]?.ToString());db.ChangeTracker.Clear();Assert.Single(await db.Lessons.ToListAsync());
