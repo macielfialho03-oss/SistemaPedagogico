@@ -12,8 +12,9 @@ public static class OnlineBootstrap {
   await using(var tx=await db.Database.BeginTransactionAsync()){
    await db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(73149281)");
    await using var command=db.Database.GetDbConnection().CreateCommand();
-   command.Transaction=tx.GetDbTransaction();command.CommandText="SELECT to_regclass('tutoring.\"Students\"')";
-   if(await command.ExecuteScalarAsync() is DBNull or null){
+   command.Transaction=tx.GetDbTransaction();command.CommandText="SELECT to_regclass('tutoring.\"Students\"') IS NOT NULL";
+   var schemaReady=await command.ExecuteScalarAsync() is true;
+   if(!schemaReady){
     var script=db.Database.GenerateCreateScript().Replace("CREATE SCHEMA tutoring;","CREATE SCHEMA IF NOT EXISTS tutoring;",StringComparison.OrdinalIgnoreCase);
     await db.Database.ExecuteSqlRawAsync(script);
    }
