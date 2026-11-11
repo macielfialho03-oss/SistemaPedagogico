@@ -11,7 +11,11 @@ using SistemaPedagogico.Infrastructure.Data;
 using SistemaPedagogico.Infrastructure.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
-var online = !string.IsNullOrWhiteSpace(builder.Configuration["DATABASE_URL"]);
+var configuredDatabaseUrl = builder.Configuration["DATABASE_URL"];
+var online = !string.IsNullOrWhiteSpace(configuredDatabaseUrl);
+var onlineDatabaseUrl = online
+    ? new Npgsql.NpgsqlConnectionStringBuilder(configuredDatabaseUrl) { Multiplexing = false }.ConnectionString
+    : null;
 if(online && int.TryParse(builder.Configuration["PORT"],out var port))builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 // Add services to the container.
@@ -31,7 +35,7 @@ if(!online)builder.Services.AddDbContext<SistemaPedagogicoDbContext>(options => 
 builder.Services.AddControllersWithViews();
 builder.Services.AddAuthorization(options => options.AddPolicy("Administrator", p => p.RequireRole("Admin")));
 if(online){
- builder.Services.AddDbContext<EducaDb>(options=>options.UseNpgsql(builder.Configuration["DATABASE_URL"]));
+ builder.Services.AddDbContext<EducaDb>(options=>options.UseNpgsql(onlineDatabaseUrl));
  builder.Services.AddHttpClient<IAttachmentStorage,SupabaseAttachmentStorage>();
  builder.Services.AddDataProtection().PersistKeysToDbContext<EducaDb>().SetApplicationName("EducaMais");
 }else{
