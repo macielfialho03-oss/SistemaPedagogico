@@ -14,7 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 var configuredDatabaseUrl = builder.Configuration["DATABASE_URL"];
 var online = !string.IsNullOrWhiteSpace(configuredDatabaseUrl);
 var onlineDatabaseUrl = online
-    ? new Npgsql.NpgsqlConnectionStringBuilder(configuredDatabaseUrl) { Multiplexing = false, Pooling = false }.ConnectionString
+    ? new Npgsql.NpgsqlConnectionStringBuilder(configuredDatabaseUrl) { Multiplexing = false, Pooling = true }.ConnectionString
     : null;
 if(online && int.TryParse(builder.Configuration["PORT"],out var port))builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
