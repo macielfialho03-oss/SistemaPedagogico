@@ -44,7 +44,7 @@ if(!online)builder.Services.AddDbContext<SistemaPedagogicoDbContext>(options => 
 builder.Services.AddControllersWithViews();
 builder.Services.AddAuthorization(options => options.AddPolicy("Administrator", p => p.RequireRole("Admin")));
 if(online){
- builder.Services.AddDbContext<EducaDb>(options=>options.UseNpgsql(onlineDatabaseUrl,npgsql=>npgsql.EnableRetryOnFailure(3,TimeSpan.FromSeconds(2),null)));
+ builder.Services.AddDbContext<EducaDb>(options=>options.UseNpgsql(onlineDatabaseUrl));
  builder.Services.AddHostedService<OnlineBootstrapHostedService>();
  builder.Services.AddHttpClient<IAttachmentStorage,SupabaseAttachmentStorage>();
  builder.Services.AddDataProtection().PersistKeysToDbContext<EducaDb>().SetApplicationName("EducaMais");

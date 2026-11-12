@@ -1,7 +1,7 @@
 @model PortalUser
 @{var vm=(PortalVm)ViewData["PortalVm"]!;}
 <form action="/portal/salvar?kind=user" method="post" class="form-grid" data-user>@Html.AntiForgeryToken()<input name="Id" type="hidden" value="@Model.Id">
-<label>Tipo de acesso<select name="Role" data-current="@Model.Role" required><option value="Aluno">Aluno</option><option value="Professor">Professor</option><option value="Admin">Administrador</option></select></label>
+<label>Tipo de acesso<select name="Role" data-current="@Model.Role" required><option value="Aluno">Aluno</option><option value="Professor">Professor</option>@if(vm.Role=="Admin"){<option value="Admin">Administrador</option>}</select></label>
 <p class="help span2" data-account-help></p>
 <label data-account-entity>Cadastro vinculado<select name="EntityId" data-current="@Model.EntityId"><option value="">Selecione pelo nome...</option>@foreach(var p in vm.Students.Where(x=>x.Active)){<option data-role="Aluno" data-email="@p.Email" value="@p.Id">@p.Name</option>}@foreach(var p in vm.Teachers.Where(x=>x.Active)){<option data-role="Professor" data-email="@p.Email" value="@p.Id">@p.Name</option>}</select><small data-entity-help></small></label>
 <label>Nome completo<input name="Name" data-fullname value="@Model.Name" required maxlength="120"></label>
