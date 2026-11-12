@@ -13,9 +13,18 @@ using SistemaPedagogico.Infrastructure.Storage;
 var builder = WebApplication.CreateBuilder(args);
 var configuredDatabaseUrl = builder.Configuration["DATABASE_URL"];
 var online = !string.IsNullOrWhiteSpace(configuredDatabaseUrl);
-var onlineDatabaseUrl = online
-    ? new Npgsql.NpgsqlConnectionStringBuilder(configuredDatabaseUrl) { Multiplexing = false, Pooling = true }.ConnectionString
-    : null;
+string? onlineDatabaseUrl = null;
+if(online){
+ var connection = new Npgsql.NpgsqlConnectionStringBuilder(configuredDatabaseUrl!) {
+  Multiplexing = false,
+  Pooling = true,
+  KeepAlive = 30,
+  ConnectionIdleLifetime = 60,
+  ConnectionLifetime = 300
+ };
+ if(connection.Port==6543 && connection.Host.EndsWith(".pooler.supabase.com",StringComparison.OrdinalIgnoreCase))connection.Port=5432;
+ onlineDatabaseUrl=connection.ConnectionString;
+}
 if(online && int.TryParse(builder.Configuration["PORT"],out var port))builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 // Add services to the container.
@@ -35,7 +44,7 @@ if(!online)builder.Services.AddDbContext<SistemaPedagogicoDbContext>(options => 
 builder.Services.AddControllersWithViews();
 builder.Services.AddAuthorization(options => options.AddPolicy("Administrator", p => p.RequireRole("Admin")));
 if(online){
- builder.Services.AddDbContext<EducaDb>(options=>options.UseNpgsql(onlineDatabaseUrl));
+ builder.Services.AddDbContext<EducaDb>(options=>options.UseNpgsql(onlineDatabaseUrl,npgsql=>npgsql.EnableRetryOnFailure(3,TimeSpan.FromSeconds(2),null)));
  builder.Services.AddHostedService<OnlineBootstrapHostedService>();
  builder.Services.AddHttpClient<IAttachmentStorage,SupabaseAttachmentStorage>();
  builder.Services.AddDataProtection().PersistKeysToDbContext<EducaDb>().SetApplicationName("EducaMais");
