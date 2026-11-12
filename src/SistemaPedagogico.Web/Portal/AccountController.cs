@@ -28,8 +28,10 @@ public class AccountController(EducaDb db,IConfiguration config):Controller {
   await db.SaveChangesAsync();ModelState.AddModelError("","E-mail ou senha inválidos.");return View("Login",input);
  }
  if(u.Role is "Admin" or "Professor"){
- if(ViewBag.Migrate==true&&!input.AdoptAccount){ModelState.AddModelError("","Confirme que esta será a conta única da professora.");return View("Login",input);}
- if(!await SingleTeacher.AdoptAsync(db,u)){ModelState.AddModelError("","Use a conta única da professora escolhida na atualização.");return View("Login",input);}
+  if(ViewBag.Migrate==true){
+   if(!input.AdoptAccount){ModelState.AddModelError("","Confirme a configuração da primeira conta administrativa.");return View("Login",input);}
+   if(!await SingleTeacher.AdoptAsync(db,u)){ModelState.AddModelError("","Não foi possível concluir a configuração da primeira conta administrativa.");return View("Login",input);}
+  }
  }
  if(attempt!=null){db.LoginAttempts.Remove(attempt);await db.SaveChangesAsync();}
  await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,new ClaimsPrincipal(new ClaimsIdentity(new[]{new Claim(ClaimTypes.NameIdentifier,u.Id.ToString()),new Claim(ClaimTypes.Name,u.Name),new Claim(ClaimTypes.Role,u.Role),new Claim("entity",u.EntityId?.ToString()??""),new Claim("stamp",u.Stamp)},CookieAuthenticationDefaults.AuthenticationScheme)),new AuthenticationProperties{IsPersistent=false});return Redirect("/portal");

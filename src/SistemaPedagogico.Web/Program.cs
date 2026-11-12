@@ -22,7 +22,7 @@ if(online){
   ConnectionIdleLifetime = 60,
   ConnectionLifetime = 300
  };
- if(connection.Port==6543 && connection.Host.EndsWith(".pooler.supabase.com",StringComparison.OrdinalIgnoreCase))connection.Port=5432;
+ if(connection.Port==6543 && connection.Host?.EndsWith(".pooler.supabase.com",StringComparison.OrdinalIgnoreCase)==true)connection.Port=5432;
  onlineDatabaseUrl=connection.ConnectionString;
 }
 if(online && int.TryParse(builder.Configuration["PORT"],out var port))builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
@@ -63,7 +63,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
   var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.Active);
   var valid = user != null && user.Stamp == context.Principal?.FindFirstValue("stamp");
   if(valid && user!.Role == "Aluno") valid = await db.Students.AnyAsync(x => x.Id == user.EntityId && x.Active);
-  if(valid && user!.Role != "Aluno") valid = user.Role == "Admin" && await db.Settings.AnyAsync(x => x.Key == SingleTeacher.OwnerKey && x.Value == user.Id.ToString());
+  if(valid && user!.Role == "Professor") valid = await db.Teachers.AnyAsync(x => x.Id == user.EntityId && x.Active);
+  if(valid && user!.Role is not ("Admin" or "Professor" or "Aluno")) valid = false;
   if(!valid) { context.RejectPrincipal(); await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(context.HttpContext, CookieAuthenticationDefaults.AuthenticationScheme); }
  };
 });
