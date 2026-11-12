@@ -200,6 +200,10 @@ public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage f
  var active=F(f,"Active")=="true";if(x.Id.ToString()==User.FindFirstValue(ClaimTypes.NameIdentifier)&&(!active||role!="Admin"))throw new ArgumentException("Não desative nem rebaixe sua própria conta.");var password=F(f,"Password",256);if((id==0||password.Length>0)&&password.Length<10)throw new ArgumentException("Senha precisa ter pelo menos 10 caracteres.");
  var name=role=="Aluno"?student!.Name:role=="Professor"&&teacher!=null?teacher.Name:FullName(f,"Name");
  if(role=="Professor"&&teacher==null){teacher=new Teacher{Name=name,Email=email,SubjectIds=string.Join(',',await db.Subjects.Where(a=>a.Active).Select(a=>a.Id).ToListAsync())};db.Teachers.Add(teacher);await db.SaveChangesAsync();eid=teacher.Id;}else if(teacher!=null)teacher.Email=email;
+ if(role=="Professor"){
+  var selected=PortalRules.Ids(F(f,"TeacherStudentIds"));if(selected.Length!=await db.Students.CountAsync(a=>selected.Contains(a.Id)&&a.Active))throw new ArgumentException("Selecione somente alunos ativos para o professor.");
+  var links=await db.Enrollments.Where(a=>a.TeacherId==eid).ToListAsync();db.Enrollments.RemoveRange(links.Where(a=>!selected.Contains(a.StudentId)));db.Enrollments.AddRange(selected.Where(sid=>links.All(a=>a.StudentId!=sid)).Select(sid=>new Enrollment{StudentId=sid,TeacherId=eid}));
+ }
  x.Name=name;x.Email=email;x.Role=role;x.EntityId=role=="Admin"?null:eid;x.Active=active;x.Stamp=Guid.NewGuid().ToString();if(password.Length>0)x.PasswordHash=new PasswordHasher<PortalUser>().HashPassword(x,password);if(id==0)db.Users.Add(x);break;}
  default: return BadRequest();
  }
