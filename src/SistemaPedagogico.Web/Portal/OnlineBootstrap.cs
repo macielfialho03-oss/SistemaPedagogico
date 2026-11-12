@@ -5,6 +5,21 @@ using System.Text;
 
 namespace SistemaPedagogico.Web.Portal;
 
+public sealed class OnlineBootstrapHostedService(
+ IServiceProvider services,
+ IConfiguration config,
+ ILogger<OnlineBootstrapHostedService> logger) : BackgroundService {
+ protected override async Task ExecuteAsync(CancellationToken stoppingToken){
+  try {
+   using var scope=services.CreateScope();
+   await OnlineBootstrap.InitializeAsync(scope.ServiceProvider.GetRequiredService<EducaDb>(),config);
+  } catch(OperationCanceledException) when(stoppingToken.IsCancellationRequested) {
+  } catch(Exception ex) {
+   logger.LogCritical(ex,"Falha ao preparar o banco de dados online.");
+  }
+ }
+}
+
 public static class OnlineBootstrap {
  public static async Task InitializeAsync(EducaDb db,IConfiguration config){
   await db.Database.ExecuteSqlRawAsync("CREATE SCHEMA IF NOT EXISTS tutoring");

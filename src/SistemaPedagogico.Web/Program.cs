@@ -36,6 +36,7 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddAuthorization(options => options.AddPolicy("Administrator", p => p.RequireRole("Admin")));
 if(online){
  builder.Services.AddDbContext<EducaDb>(options=>options.UseNpgsql(onlineDatabaseUrl));
+ builder.Services.AddHostedService<OnlineBootstrapHostedService>();
  builder.Services.AddHttpClient<IAttachmentStorage,SupabaseAttachmentStorage>();
  builder.Services.AddDataProtection().PersistKeysToDbContext<EducaDb>().SetApplicationName("EducaMais");
 }else{
@@ -63,8 +64,7 @@ var ptBr = CultureInfo.GetCultureInfo("pt-BR");
 CultureInfo.DefaultThreadCurrentCulture = ptBr;
 CultureInfo.DefaultThreadCurrentUICulture = ptBr;
 
-if(online){using var scope=app.Services.CreateScope();await OnlineBootstrap.InitializeAsync(scope.ServiceProvider.GetRequiredService<EducaDb>(),app.Configuration);}
-else using (var scope = app.Services.CreateScope())
+if(!online)using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<SistemaPedagogicoDbContext>();
     var databaseJaExistia = File.Exists(storagePaths.DatabasePath);
