@@ -210,7 +210,8 @@ public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage f
  var x=await db.Users.FindAsync(id)??throw new ArgumentException("Acesso não encontrado.");if(!await CanManageUser(x))return Forbid();var active=F(f,"Active")=="true";if(!active&&x.Id.ToString()==User.FindFirstValue(ClaimTypes.NameIdentifier))throw new ArgumentException("Não desative sua própria conta.");x.Active=active;x.Stamp=Guid.NewGuid().ToString();break;}
  case "user":{
  var x=id==0?new PortalUser():await db.Users.FindAsync(id)??throw new ArgumentException("Usuário não encontrado.");var role=Choice(f,"Role","Admin","Professor","Aluno");var eid=N(f,"EntityId");
- if(id>0&&!await CanManageUser(x)||!Admin&&(role=="Admin"||x.Role=="Admin"))return Forbid();
+ if(id>0&&!await CanManageUser(x))return Forbid();
+ if(!Admin&&(id==0&&role!="Aluno"||id>0&&role!=x.Role))return Forbid();
  var student=role=="Aluno"?await db.Students.SingleOrDefaultAsync(a=>a.Id==eid&&a.Active):null;if(role=="Aluno"&&student==null)throw new ArgumentException("Selecione um aluno ativo.");
  if(!Admin&&role=="Aluno"&&!await CanStudent(eid))return Forbid();
  var teacher=role=="Professor"&&eid>0?await db.Teachers.SingleOrDefaultAsync(a=>a.Id==eid&&a.Active):null;if(role=="Professor"&&eid>0&&teacher==null)throw new ArgumentException("Selecione um professor ativo.");
