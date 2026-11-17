@@ -12,7 +12,7 @@ namespace SistemaPedagogico.Web.Portal;
 public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage files,IConfiguration config):Controller {
  string Role=>User.FindFirstValue(ClaimTypes.Role)??"";int Entity=>int.TryParse(User.FindFirstValue("entity"),out var n)?n:0;
  bool Admin=>Role=="Admin";bool Staff=>Admin||Role=="Professor";
- async Task<bool> CanStudent(int id)=>Admin||(Role=="Aluno"?Entity==id:Role=="Professor"&&await db.Enrollments.AnyAsync(x=>x.StudentId==id&&x.TeacherId==Entity));
+ async Task<bool> CanStudent(int id)=>Staff||(Role=="Aluno"&&Entity==id);
  async Task<bool> CanManageUser(PortalUser user)=>Admin||Role=="Professor"&&(user.Role=="Professor"&&user.Id.ToString()==User.FindFirstValue(ClaimTypes.NameIdentifier)||user.Role=="Aluno"&&user.EntityId.HasValue&&await CanStudent(user.EntityId.Value));
  async Task DemandStudent(int id){if(!await CanStudent(id))throw new UnauthorizedAccessException();if(!await db.Students.AnyAsync(x=>x.Id==id&&x.Active))throw new ArgumentException("Aluno inexistente ou inativo.");}
  static string F(IFormCollection f,string k,int max=3000)=>f[k].ToString().Trim() is var s&&s.Length<=max?s:throw new ArgumentException("Campo muito longo: "+k);
@@ -27,7 +27,7 @@ public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage f
  await DemandStudent(sid);await SubjectCheck(subject);
  var student=await db.Students.FindAsync(sid);
  if(!PortalRules.Ids(student!.SubjectIds).Contains(subject))throw new ArgumentException("Selecione uma matéria do aluno.");
- var tid=Role=="Professor"?Entity:teacher;
+ var tid=teacher;
  if(tid!=null){var t=await db.Teachers.FindAsync(tid);if(t==null||!t.Active||!await db.Enrollments.AnyAsync(x=>x.StudentId==sid&&x.TeacherId==tid))throw new ArgumentException("Escolha um professor vinculado ao aluno que lecione esta matéria.");}
  }
  static string OptionalChoice(IFormCollection f,string key,string fallback,params string[] values)=>F(f,key)==""?fallback:Choice(f,key,values);
@@ -45,25 +45,25 @@ public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage f
  static decimal Money(IFormCollection f,string k)=>decimal.TryParse(F(f,k).Replace(',','.'),NumberStyles.AllowDecimalPoint|NumberStyles.AllowLeadingSign,CultureInfo.InvariantCulture,out var n)&&decimal.Round(n,2)==n?n:throw new ArgumentException("Valor monetário inválido: use até duas casas decimais.");
  static DateTime T(IFormCollection f,string k)=>DateTime.TryParse(F(f,k),CultureInfo.InvariantCulture,DateTimeStyles.None,out var t)?t:throw new ArgumentException("Data inválida.");
  static string Choice(IFormCollection f,string k,params string[] allowed)=>allowed.Contains(F(f,k))?F(f,k):throw new ArgumentException("Opção inválida: "+k);
- async Task SubjectCheck(int id){if(!await db.Subjects.AnyAsync(x=>x.Id==id&&x.Active))throw new ArgumentException("Selecione uma matéria ativa.");if(Role=="Professor"){var t=await db.Teachers.FindAsync(Entity);if(t==null||!PortalRules.Ids(t.SubjectIds).Contains(id))throw new UnauthorizedAccessException();}}
+ async Task SubjectCheck(int id){if(!await db.Subjects.AnyAsync(x=>x.Id==id&&x.Active))throw new ArgumentException("Selecione uma matéria ativa.");}
  async Task<string> Subjects(IFormCollection f){var ids=PortalRules.Ids(F(f,"SubjectIds"));if(ids.Length!=await db.Subjects.CountAsync(x=>ids.Contains(x.Id)&&x.Active))throw new ArgumentException("Matéria inválida.");return string.Join(",",ids);}
  [HttpGet("")] public async Task<IActionResult> Index(string section="painel",string q="",int? studentId=null,int? activityId=null){
  if(section is "professores" or "disponibilidade")return RedirectToAction(nameof(Index),new{section="aulas"});
- var adminOnly=new[]{"materias","mensalidades","relatorios","backup"};
- if(adminOnly.Contains(section)&&!Admin)return Forbid();
+ var staffOnly=new[]{"materias","mensalidades","relatorios","backup"};
+ if(staffOnly.Contains(section)&&!Staff)return Forbid();
  var allowed=new[]{"painel","alunos","materias","aulas","notas","atividades","atividade","materiais","progresso","mensalidades","usuarios","relatorios","backup","ficha"};if(!allowed.Contains(section))return NotFound();
  if((section=="alunos"||section=="ficha"||section=="usuarios")&&Role=="Aluno")return Forbid();
- var ids=Admin?await db.Students.Select(x=>x.Id).ToListAsync():Role=="Aluno"?new List<int>{Entity}:await db.Enrollments.Where(x=>x.TeacherId==Entity).Select(x=>x.StudentId).ToListAsync();
- var vm=new PortalVm{Section=section,Role=Role,Entity=Entity,Query=q,OwnerTeacherId=Admin?await SingleTeacher.ProfileIdAsync(db):0,Students=await db.Students.Where(x=>ids.Contains(x.Id)).OrderBy(x=>x.Name).ToListAsync(),Teachers=await db.Teachers.OrderBy(x=>x.Name).ToListAsync(),Subjects=await db.Subjects.OrderBy(x=>x.Name).ToListAsync(),Enrollments=await db.Enrollments.Where(x=>ids.Contains(x.StudentId)).ToListAsync()};
+ var ids=Staff?await db.Students.Select(x=>x.Id).ToListAsync():new List<int>{Entity};
+ var vm=new PortalVm{Section=section,Role=Role,Entity=Entity,Query=q,OwnerTeacherId=Staff?(Admin?await SingleTeacher.ProfileIdAsync(db):Entity):0,Students=await db.Students.Where(x=>ids.Contains(x.Id)).OrderBy(x=>x.Name).ToListAsync(),Teachers=await db.Teachers.OrderBy(x=>x.Name).ToListAsync(),Subjects=await db.Subjects.OrderBy(x=>x.Name).ToListAsync(),Enrollments=await db.Enrollments.Where(x=>ids.Contains(x.StudentId)).ToListAsync()};
  // Perfis não administrativos nunca recebem a lista completa da equipe pedagógica.
  if(Role=="Aluno"){var teacherIds=vm.Enrollments.Select(x=>x.TeacherId).ToList();vm.Teachers=vm.Teachers.Where(x=>teacherIds.Contains(x.Id)).ToList();}
- else if(Role=="Professor")vm.Teachers=vm.Teachers.Where(x=>x.Id==Entity).ToList();
- vm.Lessons=await db.Lessons.Where(x=>ids.Contains(x.StudentId)&&(Role!="Professor"||x.TeacherId==Entity)).OrderBy(x=>x.Start).ToListAsync();
- vm.Grades=await db.Grades.Where(x=>ids.Contains(x.StudentId)&&(Role!="Professor"||x.TeacherId==Entity||x.TeacherId==null)).OrderByDescending(x=>x.Date).ToListAsync();
- vm.Activities=await db.Activities.Where(x=>ids.Contains(x.StudentId)&&(Role!="Professor"||x.TeacherId==Entity||x.TeacherId==null)).OrderBy(x=>x.Due).ToListAsync();
- vm.Materials=await db.Materials.Where(x=>(x.StudentId==0||ids.Contains(x.StudentId))&&(Role!="Professor"||x.TeacherId==Entity)).OrderByDescending(x=>x.Created).ToListAsync();
- vm.Progress=await db.Progress.AsNoTracking().Where(x=>ids.Contains(x.StudentId)&&(Role!="Professor"||x.TeacherId==Entity)).OrderByDescending(x=>x.Date).ToListAsync();
- if(Admin){vm.Payments=await db.Payments.OrderBy(x=>x.Due).ToListAsync();vm.Users=await db.Users.OrderBy(x=>x.Role).ThenBy(x=>x.Name).ToListAsync();}
+ vm.Lessons=await db.Lessons.Where(x=>ids.Contains(x.StudentId)).OrderBy(x=>x.Start).ToListAsync();
+ vm.Grades=await db.Grades.Where(x=>ids.Contains(x.StudentId)).OrderByDescending(x=>x.Date).ToListAsync();
+ vm.Activities=await db.Activities.Where(x=>ids.Contains(x.StudentId)).OrderBy(x=>x.Due).ToListAsync();
+ vm.Materials=await db.Materials.Where(x=>x.StudentId==0||ids.Contains(x.StudentId)).OrderByDescending(x=>x.Created).ToListAsync();
+ vm.Progress=await db.Progress.AsNoTracking().Where(x=>ids.Contains(x.StudentId)).OrderByDescending(x=>x.Date).ToListAsync();
+ if(Staff)vm.Payments=await db.Payments.OrderBy(x=>x.Due).ToListAsync();
+ if(Admin)vm.Users=await db.Users.OrderBy(x=>x.Role).ThenBy(x=>x.Name).ToListAsync();
  else if(Role=="Professor"){var currentUserId=int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier),out var uid)?uid:0;vm.Users=await db.Users.Where(x=>x.Id==currentUserId&&x.Role=="Professor"||x.Role=="Aluno"&&x.EntityId.HasValue&&ids.Contains(x.EntityId.Value)).OrderBy(x=>x.Role).ThenBy(x=>x.Name).ToListAsync();}
  if(section=="ficha") { if(studentId==null||!ids.Contains(studentId.Value))return Forbid();vm.SelectedStudent=studentId; }
  if(section=="atividade"){
@@ -79,17 +79,16 @@ public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage f
  string? written=null;string? replaced=null;var returnActivityId=N(f,"ReturnActivityId");Activity? published=null;
  try {
  await using var transaction = await db.Database.BeginTransactionAsync();
- if(new[]{"student-status","delete-student","availability","teacher","subject","subject-status","enrollment","payment","paid","payment-edit","unpay"}.Contains(kind)&&!Admin)return Forbid();
+ if(new[]{"student-status","delete-student","availability","teacher","subject","subject-status","enrollment","payment","paid","payment-edit","unpay"}.Contains(kind)&&!Staff)return Forbid();
  if(kind=="student"&&!Staff)return Forbid();
  if(new[]{"user","user-password","user-status"}.Contains(kind)&&!Staff)return Forbid();
  if(new[]{"grade","delete-grade","activity","delete-activity","review","material","delete-material","progress","delete-progress"}.Contains(kind)&&!Staff)return Forbid();
  if(kind is "teacher" or "enrollment" or "availability")return Forbid();
- if((kind is "lesson" or "lesson-group-cancel")&&!Admin)return Forbid();
+ if((kind is "lesson" or "lesson-group-cancel")&&!Staff)return Forbid();
  var id=N(f,"Id");
  switch(kind){
  case "student":{
  var x=id==0?new Student():await db.Students.FindAsync(id)??throw new ArgumentException("Aluno não encontrado.");
- if(id>0&&!Admin)return Forbid();
  var name=FullName(f,"Name");var sub=await Subjects(f);var birth=F(f,"BirthDate")==""?(DateTime?)null:T(f,"BirthDate");if(birth>DateTime.Today.AddYears(-4))throw new ArgumentException("O aluno deve ter pelo menos 4 anos. Confira a data de nascimento.");
  x.Name=name;x.Email=ContactEmail(f);x.Phone=Phone(f,"Phone");x.BirthDate=birth;x.Level=Required(f,"Level",40);x.Shift=Choice(f,"Shift","Manhã","Tarde","Noite");x.Guardian=FullName(f,"Guardian",true);x.GuardianPhone=Phone(f,"GuardianPhone");x.SubjectIds=sub;x.Status=F(f,"Status")==""?(F(f,"Active")=="true"?"Ativo":"Inativo"):Choice(f,"Status","Ativo","Inativo","Formado");x.Active=x.Status=="Ativo";if(!x.Active&&await db.Lessons.AnyAsync(a=>a.StudentId==id&&a.Status=="Agendada"&&a.Start>DateTime.Now))throw new ArgumentException("Cancele ou conclua as aulas futuras antes de mudar a situação do aluno.");x.ServiceType=OptionalChoice(f,"ServiceType",x.ServiceType,"Reforço escolar","Acompanhamento escolar","Ambos");
  if(id==0){
@@ -97,7 +96,7 @@ public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage f
  if(await db.Students.AnyAsync(a=>a.RegistrationKey==key)){TempData["Success"]="Este cadastro já foi salvo. Nenhuma mensalidade foi duplicada.";return RedirectToAction(nameof(Index),new{section});}
  x.RegistrationKey=key;db.Students.Add(x);
  var assignedTeacher=Admin?await SingleTeacher.ProfileIdAsync(db):Entity;if(!await db.Teachers.AnyAsync(a=>a.Id==assignedTeacher&&a.Active))throw new ArgumentException("Professor responsável inválido.");await db.SaveChangesAsync();db.Enrollments.Add(new Enrollment{StudentId=x.Id,TeacherId=assignedTeacher});
- var months=Admin?(F(f,"BillingMode")=="no"?0:N(f,"BillingMonths")):0;if(months<0||months>60||(Admin&&F(f,"BillingMode")=="yes"&&months<1))throw new ArgumentException("Escolha entre 1 e 60 mensalidades, ou deixe sem mensalidades.");
+ var months=F(f,"BillingMode")=="no"?0:N(f,"BillingMonths");if(months<0||months>60||(F(f,"BillingMode")=="yes"&&months<1))throw new ArgumentException("Escolha entre 1 e 60 mensalidades, ou deixe sem mensalidades.");
  if(months>0){var amount=Money(f,"MonthlyAmount");if(amount<=0||amount>1000000)throw new ArgumentException("Informe um valor de mensalidade válido.");var first=T(f,"FirstDue").Date;await db.SaveChangesAsync();for(var m=0;m<months;m++)db.Payments.Add(new Payment{StudentId=x.Id,Amount=amount,Due=first.AddMonths(m),Method="",Notes="Mensalidade "+(m+1)+" de "+months});}
  }break;}
  case "student-status":{
@@ -144,11 +143,11 @@ public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage f
  var reason=Required(f,"CancellationReason",500);foreach(var row in group.Where(x=>x.Status=="Agendada")){row.Status="Cancelada";row.CancellationReason=reason;}
  break;}
  case "lesson-status":{
- var x=await db.Lessons.FindAsync(id)??throw new ArgumentException("Aula não encontrada.");await DemandStudent(x.StudentId);if(Role=="Professor"&&x.TeacherId!=Entity)return Forbid();var status=Choice(f,"Status","Cancelada","Concluída");if(x.Status!="Agendada")throw new ArgumentException("Aula já encerrada.");if(Role=="Aluno"&&(status!="Cancelada"||x.Start<=DateTime.Now))return Forbid();if(status=="Concluída"&&x.Start>DateTime.Now)throw new ArgumentException("A aula ainda não começou.");var reason=status=="Cancelada"?Required(f,"CancellationReason",500):"";x.Status=status;if(status=="Concluída"){x.Attendance=Choice(f,"Attendance","Presente","Falta");x.CancellationReason="";}else x.CancellationReason=reason;break;}
+ var x=await db.Lessons.FindAsync(id)??throw new ArgumentException("Aula não encontrada.");await DemandStudent(x.StudentId);var status=Choice(f,"Status","Cancelada","Concluída");if(x.Status!="Agendada")throw new ArgumentException("Aula já encerrada.");if(Role=="Aluno"&&(status!="Cancelada"||x.Start<=DateTime.Now))return Forbid();if(status=="Concluída"&&x.Start>DateTime.Now)throw new ArgumentException("A aula ainda não começou.");var reason=status=="Cancelada"?Required(f,"CancellationReason",500):"";x.Status=status;if(status=="Concluída"){x.Attendance=Choice(f,"Attendance","Presente","Falta");x.CancellationReason="";}else x.CancellationReason=reason;break;}
  case "delete-grade":{
- var x=await db.Grades.FindAsync(id)??throw new ArgumentException("Nota não encontrada.");if(Role=="Professor"&&x.TeacherId!=Entity)return Forbid();if(!await CanStudent(x.StudentId))return Forbid();if(F(f,"ConfirmDelete")!="true")throw new ArgumentException("Confirme a exclusão da nota.");db.Grades.Remove(x);break;}
+ var x=await db.Grades.FindAsync(id)??throw new ArgumentException("Nota não encontrada.");if(!await CanStudent(x.StudentId))return Forbid();if(F(f,"ConfirmDelete")!="true")throw new ArgumentException("Confirme a exclusão da nota.");db.Grades.Remove(x);break;}
  case "grade":{
- var existing=id==0?null:await db.Grades.FindAsync(id)??throw new ArgumentException("Nota não encontrada.");if(existing!=null&&(Role=="Professor"&&existing.TeacherId!=Entity||!await CanStudent(existing.StudentId)))return Forbid();
+ var existing=id==0?null:await db.Grades.FindAsync(id)??throw new ArgumentException("Nota não encontrada.");if(existing!=null&&!await CanStudent(existing.StudentId))return Forbid();
  var sid=N(f,"StudentId");if(existing!=null&&sid!=existing.StudentId)throw new ArgumentException("Mantenha o aluno da avaliação.");await DemandStudent(sid);var sub=N(f,"SubjectId");await Compatible(sid,sub);var value=D(f,"Value");if(value<0||value>10)throw new ArgumentException("Nota deve estar entre 0 e 10.");var date=T(f,"Date");if(date.Date>DateTime.Today)throw new ArgumentException("A data da avaliação não pode estar no futuro.");
  var x=existing??new Grade{StudentId=sid,TeacherId=Admin?await SingleTeacher.ProfileIdAsync(db):Entity};x.SubjectId=sub;x.Title=Required(f,"Title",150);x.Value=value;x.Date=date;x.Comment=F(f,"Comment",1000);x.Source=OptionalChoice(f,"Source","Avaliação da professora","Nota da escola","Avaliação da professora");if(existing==null)db.Grades.Add(x);break;}
  case "activity":{
@@ -156,7 +155,7 @@ public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage f
  var group=existing==null?new List<Activity>():existing.GroupKey==""?new List<Activity>{existing}:await db.Activities.Where(x=>x.GroupKey==existing.GroupKey).ToListAsync();
  var recipients=PortalRules.Ids(F(f,"StudentIds"));if(recipients.Length==0&&N(f,"StudentId")>0)recipients=new[]{N(f,"StudentId")};
  if(existing!=null){
- foreach(var row in group){if(!await CanStudent(row.StudentId)||Role=="Professor"&&row.TeacherId!=Entity&&row.TeacherId!=null)return Forbid();}
+ foreach(var row in group)if(!await CanStudent(row.StudentId))return Forbid();
  if(group.Any(x=>x.Submitted!=null||x.Status!="Pendente"))throw new ArgumentException("Esta atividade já recebeu uma entrega ou correção. Preserve seu enunciado.");
  recipients=group.Select(x=>x.StudentId).ToArray();}
  if(recipients.Length==0||recipients.Length>200)throw new ArgumentException("Selecione de 1 a 200 alunos.");
@@ -170,27 +169,27 @@ public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage f
  published=group[0];break;}
  case "delete-activity":{
  var activity=await db.Activities.FindAsync(id)??throw new ArgumentException("Atividade não encontrada.");var group=activity.GroupKey==""?new List<Activity>{activity}:await db.Activities.Where(x=>x.GroupKey==activity.GroupKey).ToListAsync();
- foreach(var row in group)if(!await CanStudent(row.StudentId)||Role=="Professor"&&row.TeacherId!=Entity&&row.TeacherId!=null)return Forbid();
+ foreach(var row in group)if(!await CanStudent(row.StudentId))return Forbid();
  if(group.Any(x=>x.Submitted!=null||x.Status!="Pendente"||x.Answer!=""||x.FileKey!=null||x.Score!=null))throw new ArgumentException("Esta atividade já possui entrega ou correção e não pode ser excluída. Preserve o histórico do aluno.");if(F(f,"ConfirmDelete")!="true")throw new ArgumentException("Confirme a exclusão da atividade.");
  replaced=group.Select(x=>x.AssignmentKey).FirstOrDefault(x=>x!=null);db.Activities.RemoveRange(group);break;}
  case "submit":{
  if(Role!="Aluno")return Forbid();var x=await db.Activities.FindAsync(id)??throw new ArgumentException("Atividade não encontrada.");await DemandStudent(x.StudentId);if(x.Status=="Corrigida")throw new ArgumentException("Atividade já corrigida.");var answer=F(f,"Answer",5000);if(answer.Length==0&&attachment==null&&x.FileKey==null)throw new ArgumentException("Escreva uma resposta ou envie um arquivo.");if(attachment!=null){replaced=x.FileKey;var uploaded=await Upload(attachment);written=uploaded.key;x.FileKey=uploaded.key;x.FileName=uploaded.name;}x.Answer=answer;x.Submitted=DateTime.Now;x.Status="Entregue";break;}
- case "review":{var x=await db.Activities.FindAsync(id)??throw new ArgumentException("Atividade não encontrada.");await DemandStudent(x.StudentId);if(Role=="Professor"&&x.TeacherId!=Entity&&x.TeacherId!=null)return Forbid();if(x.Status!="Entregue")throw new ArgumentException("Aguarde a entrega do aluno.");var score=D(f,"Score");if(score<0||score>10)throw new ArgumentException("Nota deve estar entre 0 e 10.");x.Score=score;x.Feedback=Required(f,"Feedback",3000);x.Status="Corrigida";break;}
+ case "review":{var x=await db.Activities.FindAsync(id)??throw new ArgumentException("Atividade não encontrada.");await DemandStudent(x.StudentId);if(x.Status!="Entregue")throw new ArgumentException("Aguarde a entrega do aluno.");var score=D(f,"Score");if(score<0||score>10)throw new ArgumentException("Nota deve estar entre 0 e 10.");x.Score=score;x.Feedback=Required(f,"Feedback",3000);x.Status="Corrigida";break;}
  case "material":{
  if(!int.TryParse(F(f,"StudentId"),out var sid)||sid<0)throw new ArgumentException("Selecione o aluno ou a opção Geral.");if(!int.TryParse(F(f,"SubjectId"),out var sub)||sub<0)throw new ArgumentException("Selecione a matéria ou a opção Todas.");var tid=Admin?await SingleTeacher.ProfileIdAsync(db):Entity;
  if(sid==0){if(!await db.Students.AnyAsync(x=>x.Active))throw new ArgumentException("Cadastre ao menos um aluno ativo antes de publicar para todos.");if(sub>0)await SubjectCheck(sub);}
- else {await DemandStudent(sid);if(sub>0)await Compatible(sid,sub,tid);if(!await db.Enrollments.AnyAsync(x=>x.StudentId==sid&&x.TeacherId==tid))throw new ArgumentException("Professor não vinculado ao aluno.");}
+ else {await DemandStudent(sid);if(sub>0)await Compatible(sid,sub);}
  var title=Required(f,"Title",150);if(attachment==null)throw new ArgumentException("Selecione um arquivo.");var uploaded=await Upload(attachment);written=uploaded.key;db.Materials.Add(new Material{StudentId=sid,TeacherId=tid,SubjectId=sub,Title=title,FileKey=uploaded.key,FileName=uploaded.name});break;}
  case "delete-material":{
- var x=await db.Materials.FindAsync(id)??throw new ArgumentException("Material não encontrado.");if(Role=="Professor"&&x.TeacherId!=Entity)return Forbid();if(F(f,"ConfirmDelete")!="true")throw new ArgumentException("Confirme a exclusão do material.");replaced=x.FileKey;db.Materials.Remove(x);break;}
+ var x=await db.Materials.FindAsync(id)??throw new ArgumentException("Material não encontrado.");if(F(f,"ConfirmDelete")!="true")throw new ArgumentException("Confirme a exclusão do material.");replaced=x.FileKey;db.Materials.Remove(x);break;}
  case "delete-progress":{
- var x=await db.Progress.FindAsync(id)??throw new ArgumentException("Progresso não encontrado.");if(Role=="Professor"&&x.TeacherId!=Entity||!await CanStudent(x.StudentId))return Forbid();if(F(f,"ConfirmDelete")!="true")throw new ArgumentException("Confirme a exclusão do registro.");db.Progress.Remove(x);break;}
+ var x=await db.Progress.FindAsync(id)??throw new ArgumentException("Progresso não encontrado.");if(!await CanStudent(x.StudentId))return Forbid();if(F(f,"ConfirmDelete")!="true")throw new ArgumentException("Confirme a exclusão do registro.");db.Progress.Remove(x);break;}
  case "progress":{
- var existing=id==0?null:await db.Progress.FindAsync(id)??throw new ArgumentException("Progresso não encontrado.");if(existing!=null&&(Role=="Professor"&&existing.TeacherId!=Entity||!await CanStudent(existing.StudentId)))return Forbid();
+ var existing=id==0?null:await db.Progress.FindAsync(id)??throw new ArgumentException("Progresso não encontrado.");if(existing!=null&&!await CanStudent(existing.StudentId))return Forbid();
  var sid=N(f,"StudentId");if(existing!=null&&sid!=existing.StudentId)throw new ArgumentException("Mantenha o aluno do registro.");await DemandStudent(sid);var tid=Admin?await SingleTeacher.ProfileIdAsync(db):Entity;
- if(!await db.Teachers.AnyAsync(x=>x.Id==tid&&x.Active)||!await db.Enrollments.AnyAsync(x=>x.StudentId==sid&&x.TeacherId==tid))throw new ArgumentException("Selecione um professor vinculado ao aluno.");
+ if(!await db.Teachers.AnyAsync(x=>x.Id==tid&&x.Active))throw new ArgumentException("Professor responsável inválido.");
  var student=await db.Students.FindAsync(sid);var service=Choice(f,"ServiceType","Reforço escolar","Acompanhamento escolar");if(student!.ServiceType!="Ambos"&&student.ServiceType!=service)throw new ArgumentException("Selecione o atendimento definido no cadastro do aluno.");
- var subject=N(f,"SubjectId");if(subject>0)await Compatible(sid,subject,tid);var date=T(f,"Date");if(date.Date>DateTime.Today)throw new ArgumentException("A data do progresso não pode estar no futuro.");
+ var subject=N(f,"SubjectId");if(subject>0)await Compatible(sid,subject);var date=T(f,"Date");if(date.Date>DateTime.Today)throw new ArgumentException("A data do progresso não pode estar no futuro.");
  var lessonId=N(f,"LessonId");if(lessonId>0&&!await db.Lessons.AnyAsync(x=>x.Id==lessonId&&x.StudentId==sid&&x.Start<=DateTime.Now&&x.Status=="Concluída"&&(subject==0||x.SubjectId==subject)))throw new ArgumentException("Escolha uma aula concluída deste aluno e professor.");
  var x=existing??new Progress{StudentId=sid};x.TeacherId=tid;x.Date=date;x.ServiceType=service;x.SubjectId=subject>0?subject:null;x.Text=F(f,"Text",3000);x.InternalNotes=F(f,"InternalNotes",3000);x.LessonId=lessonId>0?lessonId:null;x.Goal=Required(f,"Goal",500);x.Worked=Required(f,"Worked",1000);x.Evolution=Required(f,"Evolution",1000);x.NextSteps=F(f,"NextSteps",1000);
  x.Difficulty=service=="Reforço escolar"?Required(f,"Difficulty",1000):"";x.Tasks=service=="Acompanhamento escolar"?F(f,"Tasks",1000):"";x.Autonomy=service=="Acompanhamento escolar"?Choice(f,"Autonomy","Precisa de ajuda frequente","Realiza com alguma ajuda","Realiza com autonomia"):"";
@@ -239,9 +238,9 @@ public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage f
  }
  [HttpGet("horarios")] public async Task<IActionResult> Slots(int studentId,int teacherId,int subjectId,DateTime date,int minutes=60,int lessonId=0){
  try{
- if(!Admin)return Forbid();teacherId=await SingleTeacher.ProfileIdAsync(db);
+ if(!Staff)return Forbid();teacherId=Admin?await SingleTeacher.ProfileIdAsync(db):Entity;
  if(!new[]{30,60,90,120}.Contains(minutes))return BadRequest();
- await Compatible(studentId,subjectId,teacherId);
+ await Compatible(studentId,subjectId);
  var slots=new List<string>();var excluded=new List<int>();
  if(lessonId>0){var lesson=await db.Lessons.FindAsync(lessonId);if(lesson==null||lesson.StudentId!=studentId)return Forbid();excluded=lesson.GroupKey==""?new List<int>{lesson.Id}:await db.Lessons.Where(x=>x.GroupKey==lesson.GroupKey).Select(x=>x.Id).ToListAsync();}
  var from=date.Date;var until=from.AddDays(1);var lessons=await db.Lessons.Where(x=>!excluded.Contains(x.Id)&&x.Status!="Cancelada"&&x.Start<until&&x.Start>=from.AddDays(-1)).ToListAsync();
@@ -259,9 +258,8 @@ public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage f
  if(type=="material"){var x=await db.Materials.FindAsync(id);if(x==null)return NotFound();key=x.FileKey;name=x.FileName;sid=x.StudentId;tid=x.TeacherId;}
  else if(type=="enunciado"){var x=await db.Activities.FindAsync(id);if(x?.AssignmentKey==null)return NotFound();key=x.AssignmentKey;name=x.AssignmentName??"atividade";sid=x.StudentId;tid=x.TeacherId;}
  else if(type=="atividade"){var x=await db.Activities.FindAsync(id);if(x?.FileKey==null)return NotFound();key=x.FileKey;name=x.FileName??"entrega";sid=x.StudentId;tid=x.TeacherId;}else return NotFound();
- if(sid==0){if(Role=="Professor"&&tid!=Entity)return Forbid();}
- else if(!await CanStudent(sid)||Role=="Professor"&&tid!=Entity&&tid!=null)return Forbid();var bytes=await files.GetAsync(key);if(bytes==null)return NotFound();if(preview){var mime=Path.GetExtension(name).ToLowerInvariant() switch{".pdf"=>"application/pdf",".png"=>"image/png",".jpg" or ".jpeg"=>"image/jpeg",".txt"=>"text/plain; charset=utf-8",_=>null};if(mime!=null){Response.Headers["X-Content-Type-Options"]="nosniff";Response.Headers["Content-Security-Policy"]="sandbox; default-src 'none'";return File(bytes,mime);}}
+ if(sid>0&&!await CanStudent(sid))return Forbid();var bytes=await files.GetAsync(key);if(bytes==null)return NotFound();if(preview){var mime=Path.GetExtension(name).ToLowerInvariant() switch{".pdf"=>"application/pdf",".png"=>"image/png",".jpg" or ".jpeg"=>"image/jpeg",".txt"=>"text/plain; charset=utf-8",_=>null};if(mime!=null){Response.Headers["X-Content-Type-Options"]="nosniff";Response.Headers["Content-Security-Policy"]="sandbox; default-src 'none'";return File(bytes,mime);}}
  return File(bytes,"application/octet-stream",name);}
- [Authorize(Roles="Admin"),HttpGet("relatorio")] public async Task<IActionResult> Report(){var rows=await db.Students.OrderBy(x=>x.Name).ToListAsync();static string Cell(string s)=>"\""+((s.Length>0&&"=+-@".Contains(s[0]))?"'"+s:s).Replace("\"","\"\"")+"\"";var csv="Nome;Nível;Turno;Responsável;Situação\r\n"+string.Join("\r\n",rows.Select(x=>string.Join(";",new[]{x.Name,x.Level,x.Shift,x.Guardian,x.Status}.Select(Cell))));return File(System.Text.Encoding.UTF8.GetPreamble().Concat(System.Text.Encoding.UTF8.GetBytes(csv)).ToArray(),"text/csv","alunos.csv");}
- [Authorize(Roles="Admin"),HttpPost("backup"),ValidateAntiForgeryToken] public async Task<IActionResult> Backup(){if(!string.IsNullOrWhiteSpace(config["DATABASE_URL"]))return BadRequest("No modo online, faça o backup fora da Vercel com scripts/online-backup.sh.");var temp=Path.Combine(Path.GetTempPath(),"educamais-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(temp);try{foreach(var file in new[]{"sistema-pedagogico.db","educamais.db"}){var source=Path.Combine(paths.DataDirectory,file);if(!System.IO.File.Exists(source))continue;using var a=new SqliteConnection(new SqliteConnectionStringBuilder{DataSource=source}.ToString());using var b=new SqliteConnection(new SqliteConnectionStringBuilder{DataSource=Path.Combine(temp,file)}.ToString());a.Open();b.Open();a.BackupDatabase(b);}var dir=Path.Combine(paths.DataDirectory,"Arquivos");if(Directory.Exists(dir)){Directory.CreateDirectory(Path.Combine(temp,"Arquivos"));foreach(var p in Directory.GetFiles(dir))System.IO.File.Copy(p,Path.Combine(temp,"Arquivos",Path.GetFileName(p)));}var zip=temp+".zip";ZipFile.CreateFromDirectory(temp,zip);var bytes=System.IO.File.ReadAllBytes(zip);System.IO.File.Delete(zip);var setting=await db.Settings.FirstOrDefaultAsync(x=>x.Key=="last-backup");if(setting==null){setting=new PortalSetting{Key="last-backup"};db.Settings.Add(setting);}setting.Value=DateTime.Now.ToString("dd/MM/yyyy HH:mm");await db.SaveChangesAsync();return File(bytes,"application/zip","Tutoring-backup-"+DateTime.Now.ToString("yyyyMMdd-HHmm")+".zip");}finally{Directory.Delete(temp,true);}}
+ [Authorize(Roles="Admin,Professor"),HttpGet("relatorio")] public async Task<IActionResult> Report(){var rows=await db.Students.OrderBy(x=>x.Name).ToListAsync();static string Cell(string s)=>"\""+((s.Length>0&&"=+-@".Contains(s[0]))?"'"+s:s).Replace("\"","\"\"")+"\"";var csv="Nome;Nível;Turno;Responsável;Situação\r\n"+string.Join("\r\n",rows.Select(x=>string.Join(";",new[]{x.Name,x.Level,x.Shift,x.Guardian,x.Status}.Select(Cell))));return File(System.Text.Encoding.UTF8.GetPreamble().Concat(System.Text.Encoding.UTF8.GetBytes(csv)).ToArray(),"text/csv","alunos.csv");}
+ [Authorize(Roles="Admin,Professor"),HttpPost("backup"),ValidateAntiForgeryToken] public async Task<IActionResult> Backup(){if(!string.IsNullOrWhiteSpace(config["DATABASE_URL"]))return BadRequest("No modo online, faça o backup fora da Vercel com scripts/online-backup.sh.");var temp=Path.Combine(Path.GetTempPath(),"educamais-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(temp);try{foreach(var file in new[]{"sistema-pedagogico.db","educamais.db"}){var source=Path.Combine(paths.DataDirectory,file);if(!System.IO.File.Exists(source))continue;using var a=new SqliteConnection(new SqliteConnectionStringBuilder{DataSource=source}.ToString());using var b=new SqliteConnection(new SqliteConnectionStringBuilder{DataSource=Path.Combine(temp,file)}.ToString());a.Open();b.Open();a.BackupDatabase(b);}var dir=Path.Combine(paths.DataDirectory,"Arquivos");if(Directory.Exists(dir)){Directory.CreateDirectory(Path.Combine(temp,"Arquivos"));foreach(var p in Directory.GetFiles(dir))System.IO.File.Copy(p,Path.Combine(temp,"Arquivos",Path.GetFileName(p)));}var zip=temp+".zip";ZipFile.CreateFromDirectory(temp,zip);var bytes=System.IO.File.ReadAllBytes(zip);System.IO.File.Delete(zip);var setting=await db.Settings.FirstOrDefaultAsync(x=>x.Key=="last-backup");if(setting==null){setting=new PortalSetting{Key="last-backup"};db.Settings.Add(setting);}setting.Value=DateTime.Now.ToString("dd/MM/yyyy HH:mm");await db.SaveChangesAsync();return File(bytes,"application/zip","Tutoring-backup-"+DateTime.Now.ToString("yyyyMMdd-HHmm")+".zip");}finally{Directory.Delete(temp,true);}}
 }

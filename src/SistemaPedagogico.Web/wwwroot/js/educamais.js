@@ -14,7 +14,7 @@ document.querySelectorAll('form').forEach(form=>{
  const kind=new URL(form.action,location.href).searchParams.get('kind');
  if(!['lesson','material','progress','grade','activity'].includes(kind))return;
  const student=form.elements.StudentId,teacher=form.elements.TeacherId,subject=form.elements.SubjectId;
- const activityTeacher=kind==='activity'&&data.role==='Professor'?data.teachers.find(x=>x.id===data.entity):null;
+ const activityTeacher=null;
  const service=form.elements.ServiceType;
  const recipients=()=>{if(form.elements.RecipientMode?.value==='subject')return data.students.filter(x=>x.active!==false&&x.subjects.includes(Number(subject?.value))).map(x=>x.id);const checked=[...form.querySelectorAll('[name="StudentIds"]')].filter(x=>x.type==='hidden'||x.checked).map(x=>Number(x.value));return checked.length?checked:[data.role==='Aluno'?data.entity:Number(student?.value||0)].filter(Boolean);};
  const update=(teacherChanged=false)=>{
@@ -72,7 +72,7 @@ document.querySelectorAll('[data-billing]').forEach(group=>{
 // Accounts choose their associated person by name.
 document.querySelectorAll('[data-user]').forEach(form=>{
  const e=form.elements,entity=e.EntityId;remember(entity);
- function profile(fill=false){const role=e.Role.value,admin=role==='Admin',linked=!!entity.value;form.querySelector('[data-account-entity]').hidden=role!=='Aluno';form.querySelector('[data-teacher-students]').hidden=role!=='Professor';entity.disabled=admin;entity.required=role==='Aluno';e.Name.readOnly=role==='Aluno'||(role==='Professor'&&linked);filter(entity,o=>o.dataset.role===role);const help=form.querySelector('[data-account-help]'),entityHelp=form.querySelector('[data-entity-help]');if(help)help.textContent=admin?'Digite o nome para criar um acesso administrativo.':role==='Professor'?'Digite o nome do professor e marque os alunos que ele poderá acompanhar.':'Selecione o aluno que receberá este acesso.';if(entityHelp)entityHelp.textContent='';if(!admin&&fill)person();}
+ function profile(fill=false){const role=e.Role.value,admin=role==='Admin',linked=!!entity.value;form.querySelector('[data-account-entity]').hidden=role!=='Aluno';form.querySelector('[data-teacher-students]').hidden=role!=='Professor';entity.disabled=admin;entity.required=role==='Aluno';e.Name.readOnly=role==='Aluno'||(role==='Professor'&&linked);filter(entity,o=>o.dataset.role===role);const help=form.querySelector('[data-account-help]'),entityHelp=form.querySelector('[data-entity-help]');if(help)help.textContent=admin?'Digite o nome para criar um acesso administrativo.':role==='Professor'?'Digite o nome do professor e indique os alunos sob sua responsabilidade habitual.':'Selecione o aluno que receberá este acesso.';if(entityHelp)entityHelp.textContent='';if(!admin&&fill)person();}
  function person(){const option=entity.selectedOptions[0];if(option?.value){e.Name.value=option.textContent;e.Name.dispatchEvent(new Event('input'));if(option.dataset.email)e.Email.value=option.dataset.email;}}
  e.Role.addEventListener('change',()=>{entity.value='';e.Name.value='';profile(true);});entity.addEventListener('change',()=>{person();profile(false);});profile(false);
  form.querySelector('[data-show-password]')?.addEventListener('click',event=>{e.Password.type=e.Password.type==='password'?'text':'password';event.target.textContent=e.Password.type==='password'?'Mostrar senha':'Ocultar senha';});
