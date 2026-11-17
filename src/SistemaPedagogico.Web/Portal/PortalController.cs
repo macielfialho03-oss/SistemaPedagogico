@@ -76,7 +76,7 @@ public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage f
  }
  [HttpPost("salvar"),ValidateAntiForgeryToken,RequestSizeLimit(4_400_000)] public async Task<IActionResult> Save(string kind,IFormCollection f,IFormFile? attachment){
  var section=kind switch{"student" or "student-status" or "delete-student"=>"alunos","subject" or "subject-status"=>"materias","enrollment"=>"alunos","lesson" or "lesson-status" or "lesson-group-cancel"=>"aulas","grade" or "delete-grade"=>"notas","activity" or "submit" or "review"=>"atividades","material"=>"materiais","progress" or "delete-progress"=>"progresso","payment" or "paid" or "payment-edit" or "unpay"=>"mensalidades","user" or "user-password" or "user-status"=>"usuarios",_=>"painel"};
- string? written=null;string? replaced=null;var returnActivityId=N(f,"ReturnActivityId");Activity? published=null;
+ string? written=null;string? replaced=null;var removedFiles=new List<string>();var returnActivityId=N(f,"ReturnActivityId");Activity? published=null;
  try {
  await using var transaction = await db.Database.BeginTransactionAsync();
  if(new[]{"student-status","delete-student","availability","teacher","subject","subject-status","enrollment","payment","paid","payment-edit","unpay"}.Contains(kind)&&!Staff)return Forbid();
@@ -107,7 +107,9 @@ public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage f
  case "delete-student":{
  if(F(f,"ConfirmDelete")!="true")throw new ArgumentException("Confirme a exclusão do cadastro.");
  var student=await db.Students.FindAsync(id)??throw new ArgumentException("Aluno não encontrado.");
- if(student.LegacyId!=null||await db.Lessons.AnyAsync(x=>x.StudentId==id)||await db.Grades.AnyAsync(x=>x.StudentId==id)||await db.Activities.AnyAsync(x=>x.StudentId==id)||await db.Materials.AnyAsync(x=>x.StudentId==id)||await db.Progress.AnyAsync(x=>x.StudentId==id)||await db.Payments.AnyAsync(x=>x.StudentId==id))throw new ArgumentException("Este aluno possui histórico. Marque como Inativo ou Formado para preservá-lo.");
+ var activities=await db.Activities.Where(x=>x.StudentId==id).ToListAsync();var materials=await db.Materials.Where(x=>x.StudentId==id).ToListAsync();
+ removedFiles.AddRange(activities.SelectMany(x=>new[]{x.FileKey,x.AssignmentKey}).Where(x=>!string.IsNullOrWhiteSpace(x)).Select(x=>x!));removedFiles.AddRange(materials.Select(x=>x.FileKey));
+ db.Lessons.RemoveRange(await db.Lessons.Where(x=>x.StudentId==id).ToListAsync());db.Grades.RemoveRange(await db.Grades.Where(x=>x.StudentId==id).ToListAsync());db.Activities.RemoveRange(activities);db.Materials.RemoveRange(materials);db.Progress.RemoveRange(await db.Progress.Where(x=>x.StudentId==id).ToListAsync());db.Payments.RemoveRange(await db.Payments.Where(x=>x.StudentId==id).ToListAsync());
  db.Enrollments.RemoveRange(await db.Enrollments.Where(x=>x.StudentId==id).ToListAsync());
  db.Users.RemoveRange(await db.Users.Where(x=>x.Role=="Aluno"&&x.EntityId==id).ToListAsync());
  db.Students.Remove(student);break;}
@@ -228,7 +230,7 @@ public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage f
  x.Name=name;x.Email=email;x.Role=role;x.EntityId=role=="Admin"?null:eid;x.Active=active;x.Stamp=Guid.NewGuid().ToString();if(password.Length>0)x.PasswordHash=new PasswordHasher<PortalUser>().HashPassword(x,password);if(id==0)db.Users.Add(x);break;}
  default: return BadRequest();
  }
- await db.SaveChangesAsync();await transaction.CommitAsync();if(published!=null)returnActivityId=published.Id;if(replaced!=null&&!await db.Activities.AnyAsync(x=>x.FileKey==replaced||x.AssignmentKey==replaced)&&!await db.Materials.AnyAsync(x=>x.FileKey==replaced)){try{await files.DeleteAsync(replaced);}catch(HttpRequestException){/* The saved record remains valid; obsolete object can be cleaned later. */}}TempData["Success"]=kind switch{"student"=>"Cadastro do aluno salvo.","teacher"=>"Cadastro do professor salvo.","subject"=>"Matéria atualizada.","activity"=>"Atividade salva para os alunos selecionados.","delete-activity"=>"Atividade excluída da área dos alunos.","delete-material"=>"Material excluído da área dos alunos.","progress"=>"Progresso registrado.","lesson"=>"Agendamento salvo.","paid"=>"Pagamento registrado.",_=>"Alteração salva."};
+ await db.SaveChangesAsync();await transaction.CommitAsync();if(published!=null)returnActivityId=published.Id;foreach(var key in removedFiles.Append(replaced).Where(x=>!string.IsNullOrWhiteSpace(x)).Select(x=>x!).Distinct())if(!await db.Activities.AnyAsync(x=>x.FileKey==key||x.AssignmentKey==key)&&!await db.Materials.AnyAsync(x=>x.FileKey==key)){try{await files.DeleteAsync(key);}catch(HttpRequestException){/* The saved record remains valid; obsolete object can be cleaned later. */}}TempData["Success"]=kind switch{"student"=>"Cadastro do aluno salvo.","delete-student"=>"Aluno e todo o histórico relacionado foram excluídos.","teacher"=>"Cadastro do professor salvo.","subject"=>"Matéria atualizada.","activity"=>"Atividade salva para os alunos selecionados.","delete-activity"=>"Atividade excluída da área dos alunos.","delete-material"=>"Material excluído da área dos alunos.","progress"=>"Progresso registrado.","lesson"=>"Agendamento salvo.","paid"=>"Pagamento registrado.",_=>"Alteração salva."};
  }catch(UnauthorizedAccessException){if(written!=null)await files.DeleteAsync(written);return Forbid();}
  catch(DbUpdateException){if(written!=null)await files.DeleteAsync(written);TempData["Error"]="Este registro já foi salvo ou foi alterado em outra janela. Atualize a página antes de tentar novamente.";}
  catch(ArgumentException e){if(written!=null)await files.DeleteAsync(written);TempData["Error"]=e.Message;TempData["DraftKind"]=kind;TempData["DraftId"]=N(f,"Id").ToString();}
