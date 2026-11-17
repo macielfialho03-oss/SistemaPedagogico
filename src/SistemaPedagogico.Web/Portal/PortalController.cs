@@ -108,7 +108,7 @@ public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage f
  db.Enrollments.RemoveRange(await db.Enrollments.Where(x=>x.StudentId==id).ToListAsync());
  db.Users.RemoveRange(await db.Users.Where(x=>x.Role=="Aluno"&&x.EntityId==id).ToListAsync());
  db.Students.Remove(student);break;}
- case "subject":{var name=Required(f,"Name",80);if(await db.Subjects.AnyAsync(x=>x.Name==name&&x.Id!=id))throw new ArgumentException("Matéria já cadastrada.");var x=id==0?new Subject():await db.Subjects.FindAsync(id)??throw new ArgumentException("Matéria não encontrada.");x.Name=name;x.Description=F(f,"Description",500);x.Active=F(f,"Active")=="true";if(id==0)db.Subjects.Add(x);break;}
+ case "subject":{var name=Required(f,"Name",80);if(await db.Subjects.AnyAsync(x=>x.Name==name&&x.Id!=id))throw new ArgumentException("Matéria já cadastrada.");var x=id==0?new Subject():await db.Subjects.FindAsync(id)??throw new ArgumentException("Matéria não encontrada.");x.Name=name;x.Description=F(f,"Description",500);x.Active=F(f,"Active")=="true";if(id==0){db.Subjects.Add(x);await db.SaveChangesAsync();var teacher=await db.Teachers.FindAsync(await SingleTeacher.ProfileIdAsync(db));if(teacher!=null)teacher.SubjectIds=string.Join(",",PortalRules.Ids(teacher.SubjectIds).Append(x.Id).Distinct());}break;}
  case "subject-status":{var x=await db.Subjects.FindAsync(id)??throw new ArgumentException("Matéria não encontrada.");x.Active=F(f,"Active")=="true";break;}
  case "enrollment":{var sid=N(f,"StudentId");var tid=N(f,"TeacherId");await DemandStudent(sid);if(!await db.Teachers.AnyAsync(x=>x.Id==tid&&x.Active))throw new ArgumentException("Professor inválido.");if(!await db.Enrollments.AnyAsync(x=>x.StudentId==sid&&x.TeacherId==tid))db.Enrollments.Add(new Enrollment{StudentId=sid,TeacherId=tid});break;}
  case "lesson":{
@@ -156,7 +156,7 @@ public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage f
  if(group.Any(x=>x.Submitted!=null||x.Status!="Pendente"))throw new ArgumentException("Esta atividade já recebeu uma entrega ou correção. Preserve seu enunciado.");
  recipients=group.Select(x=>x.StudentId).ToArray();}
  if(recipients.Length==0||recipients.Length>200)throw new ArgumentException("Selecione de 1 a 200 alunos.");
- var sub=N(f,"SubjectId");foreach(var sid in recipients)await Compatible(sid,sub);
+ var sub=N(f,"SubjectId");await SubjectCheck(sub);var recipientStudents=await db.Students.Where(x=>recipients.Contains(x.Id)&&x.Active).ToListAsync();if(recipientStudents.Count!=recipients.Length)throw new ArgumentException("Selecione somente alunos ativos.");foreach(var sid in recipients)await DemandStudent(sid);foreach(var student in recipientStudents)student.SubjectIds=string.Join(",",PortalRules.Ids(student.SubjectIds).Append(sub).Distinct());
  var title=Required(f,"Title",150);var description=F(f,"Description",3000);var due=T(f,"Due");var origin=OptionalChoice(f,"Origin","Proposta da professora","Tarefa da escola","Proposta da professora");
  if(description.Length==0&&attachment==null&&existing?.AssignmentKey==null)throw new ArgumentException("Escreva o enunciado ou anexe a atividade.");
  string? key=existing?.AssignmentKey,name=existing?.AssignmentName;if(attachment!=null){replaced=existing?.AssignmentKey;var file=await Upload(attachment);written=file.key;key=file.key;name=file.name;}

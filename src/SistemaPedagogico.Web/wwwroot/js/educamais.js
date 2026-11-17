@@ -14,13 +14,14 @@ document.querySelectorAll('form').forEach(form=>{
  const kind=new URL(form.action,location.href).searchParams.get('kind');
  if(!['lesson','material','progress','grade','activity'].includes(kind))return;
  const student=form.elements.StudentId,teacher=form.elements.TeacherId,subject=form.elements.SubjectId;
+ const activityTeacher=kind==='activity'&&data.role==='Professor'?data.teachers.find(x=>x.id===data.entity):null;
  const service=form.elements.ServiceType;
  const recipients=()=>{if(form.elements.RecipientMode?.value==='subject')return data.students.filter(x=>x.active!==false&&x.subjects.includes(Number(subject?.value))).map(x=>x.id);const checked=[...form.querySelectorAll('[name="StudentIds"]')].filter(x=>x.type==='hidden'||x.checked).map(x=>Number(x.value));return checked.length?checked:[data.role==='Aluno'?data.entity:Number(student?.value||0)].filter(Boolean);};
  const update=(teacherChanged=false)=>{
   const ids=recipients();
   if(teacher?.tagName==='SELECT'&&!teacherChanged)filter(teacher,o=>ids.length>0&&ids.every(s=>data.enrollments.some(e=>e.student===s&&e.teacher===Number(o.value))));
   const tid=data.ownerTeacher||0;const selectedTeacher=data.teachers.find(t=>t.id===tid);
-  if(subject)filter(subject,o=>form.elements.RecipientMode?.value==='subject'||ids.length>0&&ids.every(s=>data.students.find(x=>x.id===s)?.subjects.includes(Number(o.value))));
+  if(subject)filter(subject,o=>kind==='activity'?(!activityTeacher||activityTeacher.subjects.includes(Number(o.value))):form.elements.RecipientMode?.value==='subject'||ids.length>0&&ids.every(s=>data.students.find(x=>x.id===s)?.subjects.includes(Number(o.value))));
   if(service){const s=data.students.find(x=>x.id===ids[0]);filter(service,o=>!s||s.service==='Ambos'||o.value===s.service);showService();}
   if(form.hasAttribute('data-lesson'))loadSlots(form);
  };
