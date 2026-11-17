@@ -19,7 +19,7 @@ No modo local, `PortalBootstrap.ImportAsync` lê o banco anterior e copia os dad
 
 ## Persistência
 
-Sem `DATABASE_URL`, o aplicativo usa `educamais.db` no portal e `sistema-pedagogico.db` na versão legada, com anexos locais. Com `DATABASE_URL`, o `EducaDb` usa Npgsql/PostgreSQL no schema `tutoring` e `SupabaseAttachmentStorage` grava em bucket privado. O aplicativo usa credencial de serviço do Storage **somente no servidor**; autorizações de leitura são conferidas no controller.
+Com `DATABASE_URL` configurada no servidor, o `EducaDb` usa Npgsql/PostgreSQL no schema `tutoring` e `SupabaseAttachmentStorage` grava em bucket privado. O site publicado na Vercel usa esse modo. Sem `DATABASE_URL`, a execução local usa `educamais.db` no portal e `sistema-pedagogico.db` na versão legada, com anexos locais. O aplicativo usa credencial de serviço do Storage **somente no servidor**; autorizações de leitura são conferidas no controller.
 
 O bootstrap online cria a estrutura inicial quando a tabela `Students` não existe. Mudanças posteriores no modelo exigem um processo de migração versionado.
 

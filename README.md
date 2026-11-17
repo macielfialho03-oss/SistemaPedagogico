@@ -2,7 +2,7 @@
 
 O **Tutoring** é um sistema pedagógico desenvolvido em um projeto acadêmico de extensão para organizar aulas de reforço e acompanhamento escolar. A professora administra cadastros, agenda, atividades e registros de aprendizagem; cada aluno acessa seus próprios dados.
 
-> **Estado da documentação:** descreve o código da branch `main` no commit `c09bf6a` (17/11/2026). A integração online está implementada para um piloto, mas a documentação não certifica o funcionamento em produção. Consulte [o guia técnico](docs/GUIA-TECNICO.md) e [o roteiro de implantação](ONLINE.md).
+> **Estado da documentação:** descreve o código da branch `main` no commit `c09bf6a` (17/11/2026). A [página de entrada publicada](https://sistemapedagogico.vercel.app/conta/entrar?ReturnUrl=%2Fportal) abre na Vercel; o modo online usa PostgreSQL e Storage do Supabase. Isso ainda não substitui os testes funcionais, de privacidade e restauração. Consulte [o guia técnico](docs/GUIA-TECNICO.md) e [o roteiro online](ONLINE.md).
 
 ## Problema e público
 
@@ -33,6 +33,17 @@ Reunir agenda, cadastros, atividades, materiais, progresso e registros de mensal
 | Materiais gerais | Um material marcado como geral fica acessível a todos os alunos. |
 | Privacidade | O acesso a registros e downloads passa por regras no servidor; a revisão de permissões para ações de contas por Professor ainda está pendente. |
 
+## Usar o Tutoring online
+
+**Endereço público do site:** [Entrar no Tutoring](https://sistemapedagogico.vercel.app/conta/entrar?ReturnUrl=%2Fportal). Esta página foi aberta e conferida; seu uso com contas reais ainda precisa dos testes descritos abaixo.
+
+1. **Professora:** entre com o e-mail e a senha inicial configurados na Vercel pelo responsável pela implantação. Na seção **Acessos**, use **Alterar minha senha**. Cadastre matérias e alunos; para cada aluno, crie um acesso individual e entregue suas credenciais por um canal privado.
+2. **Aulas:** em **Aulas**, selecione uma matéria e use a opção de incluir os alunos ativos dessa matéria. Escolha data/hora e, se desejar, repetições semanais; confira os participantes antes de salvar.
+3. **Atividades e materiais:** publique para alunos escolhidos ou materiais gerais. Cada aluno entra com a própria conta para ver aulas, notas, materiais e atividades e enviar sua resposta.
+4. **Saída:** encerre a sessão ao terminar, especialmente em computador compartilhado.
+
+Todos acessam **o mesmo site online** com suas próprias contas. Os dados ficam no PostgreSQL Supabase e os anexos no bucket privado; o computador da professora não precisa estar ligado para o aluno entrar. O aplicativo não oferece criação pública de conta de aluno. Se a professora esquecer a senha, o responsável pela implantação usa o procedimento de recuperação descrito em [ONLINE.md](ONLINE.md).
+
 ## Tecnologias e organização
 
 - **ASP.NET Core / .NET 10**, Razor Pages antigas e portal atual em MVC com Razor Views.
@@ -42,7 +53,7 @@ Reunir agenda, cadastros, atividades, materiais, progresso e registros de mensal
 
 O portal atual fica em `src/SistemaPedagogico.Web/Portal` e `Views/Portal`. O projeto `Core` contém entidades antigas, `Infrastructure` contém persistência/backup SQLite e `tests` contém os testes. Veja [o mapa de arquitetura](docs/ARQUITETURA.md).
 
-## Executar localmente
+## Executar localmente para desenvolvimento
 
 1. Instale o **SDK .NET 10**.
 2. No Windows, execute `Verificar-Tutoring.cmd` para compilar/testar e `Iniciar-Tutoring.cmd` para iniciar; ou use:
@@ -55,9 +66,9 @@ O portal atual fica em `src/SistemaPedagogico.Web/Portal` e `Views/Portal`. O pr
 
 O portal usa `/portal`. O modo local ainda registra rotas Razor Pages da versão anterior e mantém **dois bancos SQLite**; veja [o roteiro local](LEIA-ME-TESTE.md). Esses dados não são transferidos automaticamente para o Supabase.
 
-## Implantação e dados
+## Configuração do ambiente online
 
-O modo online é ativado por `DATABASE_URL` e exige outras variáveis no servidor, um projeto Supabase e bucket privado. A conta inicial online é provisionada por variáveis de ambiente. Siga [ONLINE.md](ONLINE.md) para instalação, gestão de segredos e backup. Nunca publique senhas, strings de conexão, bancos, anexos ou arquivos de backup no GitHub.
+O modo online é ativado por `DATABASE_URL` na Vercel e exige outras variáveis privadas do servidor, projeto Supabase e bucket privado. A primeira conta online é provisionada por variáveis de ambiente. Siga [ONLINE.md](ONLINE.md) para configuração, recuperação da senha e backup. Nunca publique senhas, strings de conexão, bancos, anexos ou arquivos de backup no GitHub.
 
 ## Verificação e pendências
 

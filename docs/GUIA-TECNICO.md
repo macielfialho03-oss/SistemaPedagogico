@@ -1,15 +1,19 @@
 # Guia técnico — Tutoring
 
-Este guia descreve o código da `main` no commit `c09bf6a` (17/11/2026). Ele registra o que foi implementado e o que ainda precisa ser verificado. Não atesta que o deploy, o banco hospedado ou a restauração estejam prontos para uso com dados reais.
+Este guia descreve o código da `main` no commit `c09bf6a` (17/11/2026). A [página de entrada](https://sistemapedagogico.vercel.app/conta/entrar?ReturnUrl=%2Fportal) abriu na Vercel; o modo online usa o projeto Supabase configurado. A abertura da página não atesta o login, o isolamento de dados ou a restauração para uso com dados reais.
 
 ## Modos de execução
 
 | Modo | Ativação | Dados | Interface |
 | --- | --- | --- | --- |
-| Local | Sem `DATABASE_URL` | `educamais.db` para o portal e `sistema-pedagogico.db` legado, mais arquivos locais | MVC em `/portal` e Razor Pages antigas ainda mapeadas |
 | Online | Com `DATABASE_URL` | PostgreSQL no schema `tutoring`, anexos em bucket privado | MVC em `/portal`; páginas legadas não são mapeadas |
+| Local | Sem `DATABASE_URL` | `educamais.db` para o portal e `sistema-pedagogico.db` legado, mais arquivos locais | MVC em `/portal` e Razor Pages antigas ainda mapeadas |
 
 A importação local do banco legado ocorre uma vez e não mantém sincronização contínua. O modo online não importa automaticamente os bancos SQLite.
+
+## Acesso ao site publicado
+
+O endereço público HTTPS confirmado é a [página de entrada do Tutoring](https://sistemapedagogico.vercel.app/conta/entrar?ReturnUrl=%2Fportal). A professora entra com a conta inicial configurada nas variáveis do servidor e altera a senha em **Acessos**. Ela cria as contas individuais dos alunos, que usam o mesmo site para consultar seus dados e enviar atividades. O aluno não se cadastra sozinho. O passo a passo de uso está no [README](../README.md); a configuração de variáveis e a recuperação administrativa estão em [ONLINE.md](../ONLINE.md).
 
 ## Componentes
 
@@ -57,7 +61,7 @@ O servidor valida tipo e conteúdo antes de gravar o arquivo. São aceitos `pdf`
 
 - Local: EF Core com SQLite. `PortalBootstrap` prepara o banco do portal e importa dados antigos do `SistemaPedagogicoDbContext`; o backup local do portal inclui os dois bancos e arquivos.
 - Online: EF Core com Npgsql e PostgreSQL. `OnlineBootstrap` cria o schema `tutoring` e o modelo inicial se a tabela `Students` ainda não existir. Isso não substitui um fluxo de migrações versionadas para futuras mudanças de schema.
-- A conexão ao pooler Supabase na porta 6543 é convertida pelo aplicativo para a porta 5432, modo de sessão. A instrução anterior em `ONLINE.md` sobre pooler de transação precisa ser atualizada junto com a configuração efetivamente usada.
+- A conexão ao pooler Supabase na porta 6543 é convertida pelo aplicativo para a porta 5432, modo de sessão. A configuração está descrita em `ONLINE.md` e precisa ser validada com os dados da implantação.
 - A inicialização online ocorre em serviço em segundo plano; falhas são registradas no log. É preciso validar o comportamento em uma implantação nova e em reinicializações.
 - `INITIAL_ADMIN_NAME`, `INITIAL_ADMIN_EMAIL` e `INITIAL_ADMIN_PASSWORD` criam a primeira conta online; a senha inicial exige 12 caracteres. `RECOVERY_ADMIN_PASSWORD` permite recuperar a conta da professora e deve ser removida depois. Credenciais ficam apenas no ambiente do servidor.
 
