@@ -8,18 +8,19 @@
 @if(Model.Role!="Aluno"){<partial name="_Filters" model="Model" />}
 <div class="lesson-list">
 @foreach(var day in rows.GroupBy(x=>x.Start.Date)){
-<section class="day-group"><h2>@day.Key.ToString("dddd, dd/MM")</h2>
+var dayCount=day.Select(PortalRules.LessonGroup).Distinct().Count();
+<section class="day-group panel agenda-day"><header class="agenda-day-head"><h2>@day.Key.ToString("dddd, dd/MM")</h2><span>@dayCount @(dayCount==1?"aula":"aulas")</span></header><div class="agenda-rows">
 @foreach(var group in day.GroupBy(PortalRules.LessonGroup)){
 var members=group.ToList();var x=members.FirstOrDefault(x=>x.Status=="Agendada")??members[0];var all=Model.Lessons.Where(l=>PortalRules.LessonGroup(l)==group.Key).ToList();
-<article class="panel record lesson-card" data-record data-students="@string.Join(",",members.Select(x=>x.StudentId))" data-subject="@x.SubjectId" data-date="@x.Start.ToString("yyyy-MM-dd")">
-<div class="lesson-time"><strong>@x.Start.ToString("HH:mm") <span>às</span> @x.Start.AddMinutes(x.Minutes).ToString("HH:mm")</strong><small>@x.Minutes minutos</small></div>
-<div class="lesson-body"><h3>@Model.SubjectName(x.SubjectId)</h3><p>@if(Model.Role!="Aluno"){<span>@(members.Count>1?$"Aula em grupo · {members.Count} participantes":Model.StudentName(x.StudentId))</span>}</p><span class="badge">@x.Mode</span>@if(x.Notes!=""){<p class="preserve">@x.Notes</p>}
+<details class="record lesson-card lesson-row" data-record data-students="@string.Join(",",members.Select(x=>x.StudentId))" data-subject="@x.SubjectId" data-date="@x.Start.ToString("yyyy-MM-dd")">
+<summary class="lesson-summary"><span class="lesson-time"><strong>@x.Start.ToString("HH:mm")</strong><small>até @x.Start.AddMinutes(x.Minutes).ToString("HH:mm")</small></span><span class="lesson-main"><strong>@Model.SubjectName(x.SubjectId)</strong><small>@(Model.Role=="Aluno"?x.Mode:members.Count>1?$"Aula em grupo · {members.Count} alunos":Model.StudentName(x.StudentId))</small></span><span class="lesson-tags"><span class="badge">@x.Mode</span><span class="badge @(x.Status=="Concluída"?"good":x.Status=="Cancelada"?"bad":"")">@x.Status</span></span><span class="lesson-expand">Detalhes <span aria-hidden="true">⌄</span></span></summary>
+<div class="lesson-details"><div class="lesson-body">@if(x.Notes!=""){<p class="preserve"><strong>Observação:</strong> @x.Notes</p>}else{<p class="help">Nenhuma observação registrada para esta aula.</p>}
 @if(x.Mode=="Online"&&x.OnlineUrl!=""&&x.Status=="Agendada"&&x.Start.AddMinutes(x.Minutes)>DateTime.Now){<a class="btn primary" href="@x.OnlineUrl" target="_blank" rel="noopener">Entrar na aula</a>}</div>
 @if(Model.Role=="Admin"){<div class="actions lesson-actions">
 @if(all.Any(l=>l.Status=="Agendada")&&!all.Any(l=>l.Status=="Concluída")&&x.Start>DateTime.Now){<details><summary>@(all.Count>1?"Remarcar grupo":"Remarcar")</summary><partial name="_LessonForm" model="x" /></details>}
 @if(all.Any(l=>l.Status=="Agendada")){<details><summary class="danger">@(all.Count>1?"Cancelar grupo":"Cancelar aula")</summary><form action="/portal/salvar?kind=lesson-group-cancel" method="post" class="form-grid" data-confirm="Confirmar o cancelamento desta aula?">@Html.AntiForgeryToken()<input name="Id" type="hidden" value="@x.Id"><p class="span2">@(all.Count>1?$"O cancelamento será aplicado aos {all.Count(l=>l.Status=="Agendada")} participantes ainda agendados.":"Informe por que esta aula será cancelada.")</p><label class="span2">Justificativa<textarea name="CancellationReason" maxlength="500" required placeholder="Ex.: aluno indisposto, feriado ou imprevisto da professora"></textarea></label><div class="span2 form-actions"><button class="btn danger">Confirmar cancelamento</button><button type="button" class="btn subtle" data-close-editor>Voltar</button></div></form></details>}
 </div>}
 <div class="lesson-members">@if(Model.Role!="Aluno"&&members.Count>1){<details class="participants-details"><summary>Ver participantes e presença (@members.Count)</summary>@foreach(var member in members){<partial name="_LessonParticipant" model="member" />}</details>}else{<partial name="_LessonParticipant" model="x" />}</div>
-</article>}
-</section>}
+</div></details>}
+</div></section>}
 </div><div class="panel empty" data-no-results @(rows.Count>0?"hidden":"")>@(history?"Nenhuma aula no histórico.":"Nenhuma aula neste período.")</div>
