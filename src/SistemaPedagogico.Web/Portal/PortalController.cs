@@ -13,6 +13,7 @@ public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage f
  string Role=>User.FindFirstValue(ClaimTypes.Role)??"";int Entity=>int.TryParse(User.FindFirstValue("entity"),out var n)?n:0;
  bool Admin=>Role=="Admin";bool Staff=>Admin||Role=="Professor";
  async Task<bool> CanStudent(int id)=>Admin||(Role=="Aluno"?Entity==id:Role=="Professor"&&await db.Enrollments.AnyAsync(x=>x.StudentId==id&&x.TeacherId==Entity));
+ async Task<bool> CanManageUser(PortalUser user)=>Admin||Role=="Professor"&&(user.Role=="Professor"&&user.Id.ToString()==User.FindFirstValue(ClaimTypes.NameIdentifier)||user.Role=="Aluno"&&user.EntityId.HasValue&&await CanStudent(user.EntityId.Value));
  async Task DemandStudent(int id){if(!await CanStudent(id))throw new UnauthorizedAccessException();if(!await db.Students.AnyAsync(x=>x.Id==id&&x.Active))throw new ArgumentException("Aluno inexistente ou inativo.");}
  static string F(IFormCollection f,string k,int max=3000)=>f[k].ToString().Trim() is var s&&s.Length<=max?s:throw new ArgumentException("Campo muito longo: "+k);
  static string Required(IFormCollection f,string k,int max=120)=>F(f,k,max) is var s&&s.Length>0?s:throw new ArgumentException("Preencha o campo "+k+".");
@@ -51,18 +52,19 @@ public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage f
  var adminOnly=new[]{"materias","mensalidades","relatorios","backup"};
  if(adminOnly.Contains(section)&&!Admin)return Forbid();
  var allowed=new[]{"painel","alunos","materias","aulas","notas","atividades","atividade","materiais","progresso","mensalidades","usuarios","relatorios","backup","ficha"};if(!allowed.Contains(section))return NotFound();
- if((section=="alunos"||section=="ficha")&&Role=="Aluno")return Forbid();
+ if((section=="alunos"||section=="ficha"||section=="usuarios")&&Role=="Aluno")return Forbid();
  var ids=Admin?await db.Students.Select(x=>x.Id).ToListAsync():Role=="Aluno"?new List<int>{Entity}:await db.Enrollments.Where(x=>x.TeacherId==Entity).Select(x=>x.StudentId).ToListAsync();
  var vm=new PortalVm{Section=section,Role=Role,Entity=Entity,Query=q,OwnerTeacherId=Admin?await SingleTeacher.ProfileIdAsync(db):0,Students=await db.Students.Where(x=>ids.Contains(x.Id)).OrderBy(x=>x.Name).ToListAsync(),Teachers=await db.Teachers.OrderBy(x=>x.Name).ToListAsync(),Subjects=await db.Subjects.OrderBy(x=>x.Name).ToListAsync(),Enrollments=await db.Enrollments.Where(x=>ids.Contains(x.StudentId)).ToListAsync()};
- // Aluno só recebe professores vinculados e suas matérias.
+ // Perfis não administrativos nunca recebem a lista completa da equipe pedagógica.
  if(Role=="Aluno"){var teacherIds=vm.Enrollments.Select(x=>x.TeacherId).ToList();vm.Teachers=vm.Teachers.Where(x=>teacherIds.Contains(x.Id)).ToList();}
+ else if(Role=="Professor")vm.Teachers=vm.Teachers.Where(x=>x.Id==Entity).ToList();
  vm.Lessons=await db.Lessons.Where(x=>ids.Contains(x.StudentId)&&(Role!="Professor"||x.TeacherId==Entity)).OrderBy(x=>x.Start).ToListAsync();
  vm.Grades=await db.Grades.Where(x=>ids.Contains(x.StudentId)&&(Role!="Professor"||x.TeacherId==Entity||x.TeacherId==null)).OrderByDescending(x=>x.Date).ToListAsync();
  vm.Activities=await db.Activities.Where(x=>ids.Contains(x.StudentId)&&(Role!="Professor"||x.TeacherId==Entity||x.TeacherId==null)).OrderBy(x=>x.Due).ToListAsync();
  vm.Materials=await db.Materials.Where(x=>(x.StudentId==0||ids.Contains(x.StudentId))&&(Role!="Professor"||x.TeacherId==Entity)).OrderByDescending(x=>x.Created).ToListAsync();
  vm.Progress=await db.Progress.AsNoTracking().Where(x=>ids.Contains(x.StudentId)&&(Role!="Professor"||x.TeacherId==Entity)).OrderByDescending(x=>x.Date).ToListAsync();
  if(Admin){vm.Payments=await db.Payments.OrderBy(x=>x.Due).ToListAsync();vm.Users=await db.Users.OrderBy(x=>x.Role).ThenBy(x=>x.Name).ToListAsync();}
- else if(Role=="Professor")vm.Users=await db.Users.Where(x=>x.Role=="Professor"||x.Role=="Aluno"&&x.EntityId.HasValue&&ids.Contains(x.EntityId.Value)).OrderBy(x=>x.Role).ThenBy(x=>x.Name).ToListAsync();
+ else if(Role=="Professor"){var currentUserId=int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier),out var uid)?uid:0;vm.Users=await db.Users.Where(x=>x.Id==currentUserId&&x.Role=="Professor"||x.Role=="Aluno"&&x.EntityId.HasValue&&ids.Contains(x.EntityId.Value)).OrderBy(x=>x.Role).ThenBy(x=>x.Name).ToListAsync();}
  if(section=="ficha") { if(studentId==null||!ids.Contains(studentId.Value))return Forbid();vm.SelectedStudent=studentId; }
  if(section=="atividade"){
  var selected=vm.Activities.FirstOrDefault(x=>x.Id==activityId);if(selected==null)return Forbid();
@@ -201,19 +203,19 @@ public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage f
  x.History+=$"{DateTime.Now:dd/MM/yyyy HH:mm} · {User.Identity?.Name??"Administrador"}: desfeito pagamento de {x.Paid:dd/MM/yyyy} ({x.Method}). Motivo: {reason}\n";x.Paid=null;x.Method="";break;}
  case "user-password":{
  var x=await db.Users.FindAsync(id)??throw new ArgumentException("Acesso não encontrado.");var password=Required(f,"Password",256);if(password.Length<10)throw new ArgumentException("Senha precisa ter pelo menos 10 caracteres.");
- if(!Admin&&x.Role=="Admin")return Forbid();
+ if(!await CanManageUser(x))return Forbid();
  if(x.Id.ToString()==User.FindFirstValue(ClaimTypes.NameIdentifier)&&new PasswordHasher<PortalUser>().VerifyHashedPassword(x,x.PasswordHash,Required(f,"CurrentPassword",256))==PasswordVerificationResult.Failed)throw new ArgumentException("Senha atual incorreta.");
  x.PasswordHash=new PasswordHasher<PortalUser>().HashPassword(x,password);x.Stamp=Guid.NewGuid().ToString();break;}
  case "user-status":{
- var x=await db.Users.FindAsync(id)??throw new ArgumentException("Acesso não encontrado.");if(!Admin&&x.Role=="Admin")return Forbid();var active=F(f,"Active")=="true";if(!active&&x.Id.ToString()==User.FindFirstValue(ClaimTypes.NameIdentifier))throw new ArgumentException("Não desative sua própria conta.");x.Active=active;x.Stamp=Guid.NewGuid().ToString();break;}
+ var x=await db.Users.FindAsync(id)??throw new ArgumentException("Acesso não encontrado.");if(!await CanManageUser(x))return Forbid();var active=F(f,"Active")=="true";if(!active&&x.Id.ToString()==User.FindFirstValue(ClaimTypes.NameIdentifier))throw new ArgumentException("Não desative sua própria conta.");x.Active=active;x.Stamp=Guid.NewGuid().ToString();break;}
  case "user":{
  var x=id==0?new PortalUser():await db.Users.FindAsync(id)??throw new ArgumentException("Usuário não encontrado.");var role=Choice(f,"Role","Admin","Professor","Aluno");var eid=N(f,"EntityId");
- if(!Admin&&(role=="Admin"||x.Role=="Admin"))return Forbid();
+ if(id>0&&!await CanManageUser(x)||!Admin&&(role=="Admin"||x.Role=="Admin"))return Forbid();
  var student=role=="Aluno"?await db.Students.SingleOrDefaultAsync(a=>a.Id==eid&&a.Active):null;if(role=="Aluno"&&student==null)throw new ArgumentException("Selecione um aluno ativo.");
  if(!Admin&&role=="Aluno"&&!await CanStudent(eid))return Forbid();
  var teacher=role=="Professor"&&eid>0?await db.Teachers.SingleOrDefaultAsync(a=>a.Id==eid&&a.Active):null;if(role=="Professor"&&eid>0&&teacher==null)throw new ArgumentException("Selecione um professor ativo.");
  var email=Required(f,"Email",150).ToLowerInvariant();if(!new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(email))throw new ArgumentException("E-mail inválido.");if(await db.Users.AnyAsync(a=>a.Email==email&&a.Id!=id))throw new ArgumentException("E-mail já utilizado.");if(role!="Admin"&&eid>0&&await db.Users.AnyAsync(a=>a.Role==role&&a.EntityId==eid&&a.Id!=id))throw new ArgumentException("Este cadastro já possui uma conta.");
- var active=F(f,"Active")=="true";if(x.Id.ToString()==User.FindFirstValue(ClaimTypes.NameIdentifier)&&(!active||role!="Admin"))throw new ArgumentException("Não desative nem rebaixe sua própria conta.");var password=F(f,"Password",256);if((id==0||password.Length>0)&&password.Length<10)throw new ArgumentException("Senha precisa ter pelo menos 10 caracteres.");
+ var active=F(f,"Active")=="true";if(x.Id.ToString()==User.FindFirstValue(ClaimTypes.NameIdentifier)&&(!active||role!=x.Role))throw new ArgumentException("Não desative nem altere o perfil da sua própria conta.");var password=F(f,"Password",256);if((id==0||password.Length>0)&&password.Length<10)throw new ArgumentException("Senha precisa ter pelo menos 10 caracteres.");
  var name=role=="Aluno"?student!.Name:role=="Professor"&&teacher!=null?teacher.Name:FullName(f,"Name");
  if(role=="Professor"&&teacher==null){teacher=new Teacher{Name=name,Email=email,SubjectIds=string.Join(',',await db.Subjects.Where(a=>a.Active).Select(a=>a.Id).ToListAsync())};db.Teachers.Add(teacher);await db.SaveChangesAsync();eid=teacher.Id;}else if(teacher!=null)teacher.Email=email;
  if(role=="Professor"){
