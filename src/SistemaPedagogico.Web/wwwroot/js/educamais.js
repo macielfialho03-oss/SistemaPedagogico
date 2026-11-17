@@ -3,7 +3,7 @@
 const data=JSON.parse(document.getElementById('portal-data')?.textContent || '{"students":[],"teachers":[],"enrollments":[]}');
 const optionsCache=new WeakMap();
 function remember(select){if(!optionsCache.has(select))optionsCache.set(select,[...select.options].map(x=>x.cloneNode(true)));return optionsCache.get(select);}
-function filter(select,predicate){if(!select)return;const old=select.value;select.replaceChildren(...remember(select).filter(x=>!x.value||predicate(x)).map(x=>x.cloneNode(true)));if([...select.options].some(x=>x.value===old))select.value=old;select.dispatchEvent(new Event('optionschanged'));}
+function filter(select,predicate){if(!select)return;const old=select.value;select.replaceChildren(...remember(select).filter(x=>!x.value||x.value==='0'||predicate(x)).map(x=>x.cloneNode(true)));if([...select.options].some(x=>x.value===old))select.value=old;select.dispatchEvent(new Event('optionschanged'));}
 // Restore values before dependent fields are filtered.
 document.querySelectorAll('select[data-current]').forEach(select=>{const value=select.dataset.current;if([...select.options].some(option=>option.value===value))select.value=value;else if(value&&value!=='0'){select.add(new Option(value,value,true,true));}});
 // Brazilian names: spaces and capitalization, without guessing accents.
