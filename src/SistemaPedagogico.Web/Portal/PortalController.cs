@@ -79,7 +79,8 @@ public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage f
  string? written=null;string? replaced=null;var returnActivityId=N(f,"ReturnActivityId");Activity? published=null;
  try {
  await using var transaction = await db.Database.BeginTransactionAsync();
- if(new[]{"student","student-status","delete-student","availability","teacher","subject","subject-status","enrollment","payment","paid","payment-edit","unpay"}.Contains(kind)&&!Admin)return Forbid();
+ if(new[]{"student-status","delete-student","availability","teacher","subject","subject-status","enrollment","payment","paid","payment-edit","unpay"}.Contains(kind)&&!Admin)return Forbid();
+ if(kind=="student"&&!Staff)return Forbid();
  if(new[]{"user","user-password","user-status"}.Contains(kind)&&!Staff)return Forbid();
  if(new[]{"grade","delete-grade","activity","delete-activity","review","material","delete-material","progress","delete-progress"}.Contains(kind)&&!Staff)return Forbid();
  if(kind is "teacher" or "enrollment" or "availability")return Forbid();
@@ -88,14 +89,15 @@ public class PortalController(EducaDb db,StoragePaths paths,IAttachmentStorage f
  switch(kind){
  case "student":{
  var x=id==0?new Student():await db.Students.FindAsync(id)??throw new ArgumentException("Aluno não encontrado.");
+ if(id>0&&!Admin)return Forbid();
  var name=FullName(f,"Name");var sub=await Subjects(f);var birth=F(f,"BirthDate")==""?(DateTime?)null:T(f,"BirthDate");if(birth>DateTime.Today.AddYears(-4))throw new ArgumentException("O aluno deve ter pelo menos 4 anos. Confira a data de nascimento.");
  x.Name=name;x.Email=ContactEmail(f);x.Phone=Phone(f,"Phone");x.BirthDate=birth;x.Level=Required(f,"Level",40);x.Shift=Choice(f,"Shift","Manhã","Tarde","Noite");x.Guardian=FullName(f,"Guardian",true);x.GuardianPhone=Phone(f,"GuardianPhone");x.SubjectIds=sub;x.Status=F(f,"Status")==""?(F(f,"Active")=="true"?"Ativo":"Inativo"):Choice(f,"Status","Ativo","Inativo","Formado");x.Active=x.Status=="Ativo";if(!x.Active&&await db.Lessons.AnyAsync(a=>a.StudentId==id&&a.Status=="Agendada"&&a.Start>DateTime.Now))throw new ArgumentException("Cancele ou conclua as aulas futuras antes de mudar a situação do aluno.");x.ServiceType=OptionalChoice(f,"ServiceType",x.ServiceType,"Reforço escolar","Acompanhamento escolar","Ambos");
  if(id==0){
  var key=F(f,"RegistrationKey",40);if(!Guid.TryParse(key,out _))throw new ArgumentException("Reabra o formulário para cadastrar o aluno.");
  if(await db.Students.AnyAsync(a=>a.RegistrationKey==key)){TempData["Success"]="Este cadastro já foi salvo. Nenhuma mensalidade foi duplicada.";return RedirectToAction(nameof(Index),new{section});}
  x.RegistrationKey=key;db.Students.Add(x);
- var assignedTeacher=await SingleTeacher.ProfileIdAsync(db);await db.SaveChangesAsync();db.Enrollments.Add(new Enrollment{StudentId=x.Id,TeacherId=assignedTeacher});
- var months=F(f,"BillingMode")=="no"?0:N(f,"BillingMonths");if(months<0||months>60||(F(f,"BillingMode")=="yes"&&months<1))throw new ArgumentException("Escolha entre 1 e 60 mensalidades, ou deixe sem mensalidades.");
+ var assignedTeacher=Admin?await SingleTeacher.ProfileIdAsync(db):Entity;if(!await db.Teachers.AnyAsync(a=>a.Id==assignedTeacher&&a.Active))throw new ArgumentException("Professor responsável inválido.");await db.SaveChangesAsync();db.Enrollments.Add(new Enrollment{StudentId=x.Id,TeacherId=assignedTeacher});
+ var months=Admin?(F(f,"BillingMode")=="no"?0:N(f,"BillingMonths")):0;if(months<0||months>60||(Admin&&F(f,"BillingMode")=="yes"&&months<1))throw new ArgumentException("Escolha entre 1 e 60 mensalidades, ou deixe sem mensalidades.");
  if(months>0){var amount=Money(f,"MonthlyAmount");if(amount<=0||amount>1000000)throw new ArgumentException("Informe um valor de mensalidade válido.");var first=T(f,"FirstDue").Date;await db.SaveChangesAsync();for(var m=0;m<months;m++)db.Payments.Add(new Payment{StudentId=x.Id,Amount=amount,Due=first.AddMonths(m),Method="",Notes="Mensalidade "+(m+1)+" de "+months});}
  }break;}
  case "student-status":{
