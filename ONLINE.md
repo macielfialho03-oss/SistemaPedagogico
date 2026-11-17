@@ -1,6 +1,15 @@
-# Tutoring online: implantação piloto
+# Tutoring online: Vercel e Supabase
 
-O modo online usa **um banco PostgreSQL Supabase** (schema `tutoring`) e um bucket privado. Os dois SQLite locais permanecem disponíveis para a instalação antiga; os cadastros antigos, declarados como testes, não são enviados automaticamente. Não execute a aplicação online contra o banco de produção sem validar primeiro este fluxo em homologação.
+O aplicativo tem uma [página de entrada publicada na Vercel](https://sistemapedagogico.vercel.app/conta/entrar?ReturnUrl=%2Fportal) e usa **PostgreSQL Supabase** (schema `tutoring`) e um bucket privado no modo online. A abertura da página de entrada e o status do deploy não substituem os testes de uso e restauração. Os dois SQLite locais permanecem para a instalação antiga; os cadastros antigos, declarados como testes, não são enviados automaticamente.
+
+## Entrar e usar o site publicado
+
+1. Abra a [página de entrada do Tutoring](https://sistemapedagogico.vercel.app/conta/entrar?ReturnUrl=%2Fportal). Esse é o endereço de acesso ao aplicativo; o link de detalhes no painel Vercel serve para acompanhar o deploy.
+2. A professora entra com o e-mail e a senha da conta inicial configurados nas variáveis privadas da Vercel. Em **Acessos**, altere a própria senha.
+3. A professora cadastra matérias e alunos e cria uma conta individual para cada aluno na mesma seção **Acessos**. Entregue as credenciais por um canal privado.
+4. Cada aluno acessa o **mesmo endereço** com sua própria conta para consultar aulas, notas, materiais e atividades e enviar respostas. O acesso do aluno independe do computador da professora estar ligado.
+
+No modo online, as alterações persistem no PostgreSQL e os anexos ficam no Storage privado. O site não oferece cadastro público de alunos ou responsáveis.
 
 ## Configuração
 
@@ -9,16 +18,16 @@ O modo online usa **um banco PostgreSQL Supabase** (schema `tutoring`) e um buck
 
    | Variável | Conteúdo |
    | --- | --- |
-   | `DATABASE_URL` | String de conexão ADO.NET Npgsql do PostgreSQL, com SSL e schema `tutoring`; use o pooler de transação Supabase e valide compatibilidade com Npgsql. |
+   | `DATABASE_URL` | String de conexão ADO.NET Npgsql do PostgreSQL com SSL. O aplicativo muda a porta 6543 para 5432 quando reconhece o host do pooler Supabase, usando a conexão de sessão; valide o host e o usuário no painel Supabase. |
    | `SUPABASE_URL` | URL HTTPS do projeto Supabase. |
    | `SUPABASE_SERVICE_ROLE_KEY` | Chave secreta da API Storage, somente no servidor. |
    | `SUPABASE_BUCKET` | Nome do bucket privado (opcional, padrão `tutoring-private`). |
    | `INITIAL_ADMIN_NAME`, `INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_PASSWORD` | Conta inicial da professora; senha com no mínimo 12 caracteres. |
    | `PORT` | Porta HTTP do contêiner (padrão Docker 8080). |
 
-   Exemplo de string Npgsql: `Host=...;Port=6543;Database=postgres;Username=postgres.PROJECT_REF;Password=...;SSL Mode=Require;Pooling=true;Max Pool Size=10;No Reset On Close=false`. Use os dados exatos do painel Supabase, sem copiar credenciais para o repositório. O schema `tutoring` é criado na primeira inicialização; o usuário de banco precisa de permissão de criação no banco. Retire `INITIAL_ADMIN_PASSWORD` depois da primeira inicialização bem sucedida: a conta persiste no banco e a variável não é mais lida para substituir a senha.
+   Exemplo ilustrativo de string Npgsql para o pooler em modo de sessão: `Host=...pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.PROJECT_REF;Password=...;SSL Mode=Require;Pooling=true;Max Pool Size=10`. Copie os valores reais do painel Supabase, sem publicar credenciais. O schema `tutoring` é criado na primeira inicialização; o usuário de banco precisa de permissão de criação. Retire `INITIAL_ADMIN_PASSWORD` depois da primeira inicialização bem sucedida: a conta persiste no banco e a variável não substitui senhas existentes.
 3. Construa o `Dockerfile` na Vercel ou em um host de contêiner compatível e configure domínio HTTPS. O cookie exige HTTPS. Não monte armazenamento local para sessões: as chaves de proteção são guardadas no PostgreSQL.
-4. A professora entra com a conta inicial, muda a senha em **Acessos > Conta da professora** e cria uma conta individual para cada aluno. Entregue as credenciais por um canal privado. Se esquecer a senha, configure temporariamente `RECOVERY_ADMIN_PASSWORD` (12+ caracteres) e publique novamente; depois de entrar e alterar a senha, remova a variável. A rotação invalida as sessões anteriores.
+4. A professora entra com a conta inicial, muda a senha em **Acessos > Alterar minha senha** e cria uma conta individual para cada aluno. Entregue as credenciais por um canal privado. Se esquecer a senha, o responsável pela implantação configura temporariamente `RECOVERY_ADMIN_PASSWORD` (12+ caracteres) e publica novamente; depois que ela entrar e alterar a senha, remova a variável. A rotação invalida as sessões anteriores.
 
 ## Anexos e limites
 
