@@ -14,6 +14,54 @@ O projeto atende à professora e aos alunos cadastrados. Responsáveis são regi
 
 Reunir agenda, cadastros, atividades, materiais, progresso e registros de mensalidades em um portal web, com permissões por perfil. O objetivo do piloto online é validar o uso da professora e dos alunos, a privacidade dos anexos e a recuperação dos dados antes da entrega final.
 
+## Requisitos funcionais
+
+Os códigos `RF` identificam o que o sistema deve fazer. **Presente no código** significa que a função foi encontrada na versão analisada; ainda pode exigir teste no site publicado.
+
+| Código | Requisito | Situação |
+| --- | --- | --- |
+| RF01 | Permitir entrada com contas individuais de professora e alunos. | Presente no código |
+| RF02 | Cadastrar alunos, responsáveis e matérias. | Presente no código |
+| RF03 | Agendar aulas para um ou vários alunos, inclusive os alunos ativos de uma matéria e repetições semanais. | Presente no código |
+| RF04 | Remarcar ou cancelar uma ocorrência para todos os participantes, com justificativa no cancelamento. | Presente no código |
+| RF05 | Publicar atividades para vários alunos e corrigir cada entrega individualmente. | Presente no código |
+| RF06 | Disponibilizar materiais, notas, progresso e agenda conforme o perfil. | Presente no código |
+| RF07 | Registrar mensalidades e exportar a relação de alunos. | Presente no código; não realiza cobrança |
+| RF08 | Criar a conta inicial online, permitir troca de senha e limitar tentativas de login. | Presente no código |
+| RF09 | Gerar cópia do banco e anexos online e restaurá-la em outro projeto. | Script presente; restauração não comprovada |
+| RF10 | Remarcar ou cancelar a **série semanal inteira** de uma vez. | Pendente; hoje afeta uma ocorrência |
+
+## Requisitos não funcionais
+
+| Código | Requisito | Situação |
+| --- | --- | --- |
+| RNF01 | Proteger contas e dados com autenticação, autorização e conexões HTTPS. | Implementação presente; teste de isolamento pendente |
+| RNF02 | Manter anexos em armazenamento privado, com limite e validação de formato. | Implementação presente; teste no ambiente publicado pendente |
+| RNF03 | Permitir acesso em celular e computador. | Layout responsivo presente; revisão prática pendente |
+| RNF04 | Permitir uso por professora e alunos em redes e dispositivos diferentes, sem depender do computador da professora. | Arquitetura online presente; teste simultâneo pendente |
+| RNF05 | Garantir navegação por teclado, mensagens claras e contraste adequado. | Avaliação de acessibilidade pendente |
+| RNF06 | Recuperar dados e anexos a partir de cópia externa. | Script presente; rotina e restauração pendentes |
+
+## Regras de negócio
+
+- Uma aula para uma matéria inclui os alunos ativos dessa matéria **no momento do agendamento**. Novos alunos não entram automaticamente nas ocorrências já criadas.
+- O agendamento semanal cria até 52 ocorrências. Cada ocorrência agrupa seus participantes; a série completa ainda não tem ação de remarcação ou cancelamento.
+- Aulas conflitantes no mesmo horário são recusadas; cancelar exige uma justificativa.
+- Atividades publicadas em grupo preservam resposta, nota e feedback separados por aluno.
+- Materiais marcados como **gerais** são destinados a todos os alunos; os demais dependem do aluno vinculado.
+- No fluxo atual, anexos de até **4 MiB** aceitam PDF, DOCX, XLSX, PPTX, TXT, JPG ou PNG. Vídeos não são aceitos.
+- Responsáveis são dados do cadastro do aluno, sem conta própria. O código permite hoje múltiplos perfis administrativos e de professor; a definição anterior do projeto era uma professora única.
+
+## Histórias de usuário e aceitação
+
+- **HU01 — Professora:** quero cadastrar alunos e matérias para organizar meus atendimentos. **Aceite:** o cadastro salvo aparece no portal e pode ser usado no agendamento.
+- **HU02 — Professora:** quero marcar matemática na segunda para os alunos ativos dessa matéria. **Aceite:** todos os elegíveis no momento da criação recebem sua participação; outro compromisso no horário gera aviso de conflito.
+- **HU03 — Aluno:** quero consultar minhas aulas, materiais e atividades e enviar minha resposta. **Aceite:** minha conta não mostra os registros individuais de outro aluno.
+- **HU04 — Professora:** quero acompanhar as entregas de uma atividade em grupo. **Aceite:** corrigir um aluno não altera a resposta nem a situação dos demais.
+- **HU05 — Professora:** quero cancelar uma aula para o grupo explicando o motivo. **Aceite:** a ocorrência é cancelada para seus participantes e a justificativa fica registrada.
+
+O [documento de requisitos](docs/REQUISITOS.md) detalha os critérios de aceitação, a situação de cada item e os testes necessários antes da entrega.
+
 ## Funcionalidades presentes no código
 
 - Cadastros de alunos, responsáveis, matérias e contas de acesso.
@@ -76,6 +124,7 @@ Os testes automatizados podem ser executados pelo comando acima; isso não subst
 
 ## Documentação
 
+- [Requisitos e critérios de aceitação](docs/REQUISITOS.md)
 - [Guia técnico e regras verificadas](docs/GUIA-TECNICO.md)
 - [Arquitetura](docs/ARQUITETURA.md)
 - [Implantação online e backup](ONLINE.md)
